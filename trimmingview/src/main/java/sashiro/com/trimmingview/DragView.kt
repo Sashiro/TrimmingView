@@ -117,12 +117,107 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     }
 
-    override fun onScale(p0: ScaleGestureDetector?): Boolean {
+    override fun onScale(detector: ScaleGestureDetector): Boolean {
+        if (drawable == null) return true
+        val intentScale = detector.scaleFactor
+        if (intentScale != 1f) {
+            changeWithoutRotate {
+                photoMatrix.postScale(intentScale, intentScale, centerPointF.x, centerPointF.y)
+                val currentScale = matrixValues.getScale(photoMatrix)
+                if (currentScale >= maxScale)
+                    photoMatrix.postScale(maxScale / currentScale, maxScale / currentScale, centerPointF.x, centerPointF.y)
+            }
+            imageMatrix = photoMatrix
+        }
         return true
     }
 
-    override fun onTouch(p0: View?, p1: MotionEvent?): Boolean {
-        return true
+    // onTouch
+    override fun onTouch(view: View?, event: MotionEvent): Boolean {
+        if (drawable == null) return true
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                lastTouchPointF.apply {
+                    x = event.getX(0)
+                    y = event.getY(0)
+                }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (lastPointerCount == event.pointerCount && event.pointerCount <= 1) {
+                    val dx = event.x - lastTouchPointF.x
+                    val dy = event.y - lastTouchPointF.y
+                    photoMatrix.postTranslate(dx, dy)
+                    imageMatrix = photoMatrix
+                }
+
+                lastTouchPointF.x = event.x
+                lastTouchPointF.y = event.y
+                lastPointerCount = event.pointerCount
+            }
+            MotionEvent.ACTION_UP -> {
+                if (event.pointerCount > 1) return gestureDetector.onTouchEvent(event)
+
+                changeWithoutRotate {
+                    val currentScale = matrixValues.getScale(photoMatrix)
+                    when {
+                        currentScale > maxScale ->
+                            photoMatrix.apply {
+                                setScale(dragInfo.lastScale, dragInfo.lastScale)
+                                postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
+                            }
+                        currentScale < standardScale ->
+                            resetPhotoMatrix()
+                        else -> {
+                            val left = matrixValues.getTransX(photoMatrix)
+                            val right = left + drawableWF * currentScale
+                            val top = matrixValues.getTransY(photoMatrix)
+                            val bottom = top + drawableHF * currentScale
+
+                            val currentRectF = when (dragInfo.hasRotated) {
+                                true -> {
+                                    val width = standardRectF.height()
+                                    val height = standardRectF.width()
+                                    RectF(
+                                            centerPointF.x - width / 2,
+                                            centerPointF.y - height / 2,
+                                            centerPointF.x + width / 2,
+                                            centerPointF.y + height / 2
+                                    )
+                                }
+                                false -> standardRectF
+                            }
+
+                            val dx = when {
+                                left > currentRectF.left -> currentRectF.left - left
+                                right < currentRectF.right -> currentRectF.right - right
+                                else -> 0f
+                            }
+
+                            val dy = when {
+                                top > currentRectF.top -> currentRectF.top - top
+                                bottom < currentRectF.bottom -> currentRectF.bottom - bottom
+                                else -> 0f
+                            }
+
+                            photoMatrix.postTranslate(dx, dy)
+                        }
+                    }
+
+                    lastTouchPointF.apply {
+                        x = 0f
+                        y = 0f
+                    }
+                    dragInfo.apply {
+                        lastTransX = matrixValues.getTransX(photoMatrix)
+                        lastTransY = matrixValues.getTransY(photoMatrix)
+                        lastScale = matrixValues.getScale(photoMatrix)
+                    }
+                }
+
+                imageMatrix = photoMatrix
+            }
+        }
+        return gestureDetector.onTouchEvent(event)
     }
 
     // private method
@@ -131,7 +226,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                     && imgWidth > 0f && imgHeight > 0f
 
     private fun applyLastResult() {
-        val realStandardRectF = when (lastTriResult.isRotated()) {
+        val realStandardRectF = when (lastTriResult.hasRotated()) {
             true -> getRotatedRectF()
             false -> standardRectF
         }
@@ -180,6 +275,20 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                     else -> 1f
                 }
             }
+
+    private fun changeWithoutRotate(f: () -> Unit) {
+        photoMatrix.postRotate(360f - dragInfo.lastAngle, centerPointF.x, centerPointF.y)
+        f.invoke()
+        photoMatrix.postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
+    }
+
+    private fun resetPhotoMatrix() {
+        if (drawable == null) return
+        photoMatrix.apply {
+            setTranslate(centerPointF.x - drawableWF / 2, centerPointF.y - drawableHF / 2)
+            postScale(standardScale, standardScale, centerPointF.x, centerPointF.y)
+        }
+    }
 
     // protect method
     protected fun getRotatedRectF(): RectF {

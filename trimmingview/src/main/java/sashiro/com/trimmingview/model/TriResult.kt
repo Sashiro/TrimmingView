@@ -13,5 +13,5 @@ data class TriResult(
 
     fun isEmpty() = absoluteTriRectF.isEmpty
 
-    fun isRotated() = angle % 180 != 0f
+    fun hasRotated() = angle % 180 != 0f
 }

@@ -12,7 +12,7 @@ fun FloatArray.getTransX(matrix: Matrix) =
         getValues(matrix, Matrix.MTRANS_X)
 
 fun FloatArray.getTransY(matrix: Matrix) =
-        getValues(matrix, Matrix.MSCALE_Y)
+        getValues(matrix, Matrix.MTRANS_Y)
 
 fun FloatArray.getScale(matrix: Matrix) =
         getValues(matrix, Matrix.MSCALE_X)
