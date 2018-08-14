@@ -13,17 +13,12 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewTreeObserver
 import sashiro.com.trimmingview.ext.*
-import sashiro.com.trimmingview.model.DragInfo
-import sashiro.com.trimmingview.model.TriResult
-import sashiro.com.trimmingview.model.hasRotated
-import sashiro.com.trimmingview.model.isEmpty
+import sashiro.com.trimmingview.model.*
 
 /** @hide */
 open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatImageView(context, attributeSet),
         ViewTreeObserver.OnGlobalLayoutListener, ScaleGestureDetector.OnScaleGestureListener,
         View.OnTouchListener {
-
-    constructor(context: Context) : this(context, null)
 
     // private field
     private var maxScale = 1f
@@ -42,6 +37,8 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     protected val lastTriResult = TriResult()
     protected var imgWidth: Float = 0f
     protected var imgHeight: Float = 0f
+    protected var rectFHasRotated = false
+    protected var borderRatio = 1f
 
     // public field
     var maxScaleAs = DEFAULT_MAX_SCALE_AS
@@ -52,8 +49,9 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         if (!needCalImg || drawable == null) return
 
         // apply lastTriResult
-        if (needApplyLastResult())
-            applyLastResult()
+        if (needApplyLastResult()) {
+            dragInfo.set(transformLengthInfo(lastTriResult.lengthInfo, lastTriResult.angle))
+        }
 
         // init standardRectF
         if (standardRectF.isEmpty)
@@ -223,31 +221,10 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     // private method
     private fun needApplyLastResult() =
             !lastTriResult.isEmpty() && !standardRectF.isEmpty
-                    && imgWidth > 0f && imgHeight > 0f
-
-    private fun applyLastResult() {
-        val realStandardRectF = when (lastTriResult.hasRotated()) {
-            true -> getRotatedRectF()
-            false -> standardRectF
-        }
-
-        val realScale = realStandardRectF.width() / lastTriResult.absoluteTriRectF.width()
-        val lastScale = imgWidth * realScale / drawableWF
-        val transX = (widthF - realStandardRectF.width()) / 2 - lastTriResult.absoluteTriRectF.left * realScale
-        val transY = (heightF - realStandardRectF.height()) / 2 - lastTriResult.absoluteTriRectF.top * realScale
-
-        dragInfo.apply {
-            this.lastScale = lastScale
-            this.lastTransX = transX
-            this.lastTransY = transY
-            this.lastAngle = lastTriResult.angle
-        }
-    }
-
 
     private fun calculateStandardScale() =
             when {
-                dragInfo.isEmpty && dragInfo.hasRotated ->
+                !dragInfo.isEmpty && dragInfo.hasRotated ->
                     when {
                         drawableHF < standardRectF.width()
                                 && drawableWF > standardRectF.height() ->
@@ -290,14 +267,70 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         }
     }
 
-    // protect method
-    protected fun getRotatedRectF(): RectF {
-        val left = (widthF - standardRectF.height()) / 2
-        val right = left + standardRectF.height()
-        val top = (heightF - standardRectF.width()) / 2
-        val bottom = top + standardRectF.width()
-        return RectF(left, top, right, bottom)
+    private fun getLengthInfo(dragInfo: DragInfo): LengthInfo {
+        val sLeft = standardRectF.left
+        val sRight = standardRectF.right
+        val sTop = standardRectF.top
+        val sBottom = standardRectF.bottom
+        val sWidth = standardRectF.width()
+        val sHeight = standardRectF.height()
+        val transX = dragInfo.lastTransX
+        val transY = dragInfo.lastTransY
+        val scale = dragInfo.lastScale
+        return when (dragInfo.lastAngle % 180 == 0f) {
+            true ->
+                LengthInfo((sLeft - transX) / sWidth,
+                        (sTop - transY) / sHeight,
+                        (drawableWF * scale - sRight + transX) / sWidth,
+                        (drawableHF * scale - sBottom + transY) / sHeight)
+            false -> {
+                val realLeft = (widthF - sHeight) / 2
+                val realRight = realLeft + sHeight
+                val realTop = (heightF - sWidth) / 2
+                val realBottom = realTop + sWidth
+                LengthInfo((realLeft - transX) / sHeight,
+                        (realTop - transY) / sWidth,
+                        (drawableWF * scale + transX - realRight) / sHeight,
+                        (drawableHF * scale + transY - realBottom) / sWidth)
+            }
+        }.apply {
+            if (top < 0f)
+                top = 0f
+            if (left < 0f)
+                left = 0f
+            if (right < 0f)
+                right = 0f
+            if (bottom < 0f)
+                bottom = 0f
+        }
     }
+
+    private fun transformLengthInfo(lengthInfo: LengthInfo, angle: Float): DragInfo {
+        val sLeft = standardRectF.left
+        val sTop = standardRectF.top
+        val sWidth = standardRectF.width()
+        val sHeight = standardRectF.height()
+        return when (angle % 180 == 0f) {
+            true ->
+                DragInfo(sLeft - lengthInfo.left * sWidth,
+                        sTop - lengthInfo.top * sHeight,
+                        ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF,
+                        angle)
+            false ->
+                DragInfo((widthF - sHeight) / 2 - lengthInfo.left * sHeight,
+                        (heightF - sWidth) / 2 - lengthInfo.top * sWidth,
+                        ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
+                        angle)
+        }
+    }
+
+    // protect method
+    protected fun setCenter(x: Float = -1f,
+                            y: Float = -1f) =
+            centerPointF.apply {
+                this.x = x
+                this.y = y
+            }
 
     // override method
     override fun onAttachedToWindow() {
@@ -310,6 +343,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         viewTreeObserver.removeOnGlobalLayoutListener(this)
     }
 
+    @CallSuper
     override fun setImageDrawable(drawable: Drawable?) {
         super.setImageDrawable(drawable)
         needCalImg = true
@@ -317,15 +351,21 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     }
 
     // public method
-    fun setCenter(x: Float = -1f,
-                  y: Float = -1f) =
-            centerPointF.apply {
-                this.x = x
-                this.y = y
-            }
+    @CallSuper
+    open fun rotateImg(angle: Float): Float {
+        if (drawable == null) return 0f
+        // save lastTrimResult
+        lastTriResult.angle = when (angle >= 360f || angle <= -360f) {
+            true -> 0f
+            false -> angle
+        }
+        lastTriResult.lengthInfo.set(getLengthInfo(dragInfo))
 
-    fun setCenter(pointF: PointF) =
-            setCenter(pointF.x, pointF.y)
+        requestLayout()
+        return getCurrentAngle()
+    }
+
+    fun getCurrentAngle() = dragInfo.lastAngle
 
     companion object {
         private const val DEFAULT_MAX_SCALE_AS = 4

@@ -1,17 +1,15 @@
 package sashiro.com.trimmingview.model
 
-import android.graphics.RectF
-
 data class TriResult(
-        val absoluteTriRectF: RectF = RectF(),
+        val lengthInfo: LengthInfo = LengthInfo(),
         var angle: Float = 0f
 ) {
     fun set(src: TriResult) {
-        absoluteTriRectF.set(src.absoluteTriRectF)
+        lengthInfo.set(src.lengthInfo)
         angle = src.angle
     }
 
-    fun isEmpty() = absoluteTriRectF.isEmpty
+    fun isEmpty() = lengthInfo.isEmpty()
 
     fun hasRotated() = angle % 180 != 0f
 }

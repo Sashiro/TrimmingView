@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,9 +7,37 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <sashiro.com.trimmingview.DragView
+    <RelativeLayout
+        android:id="@+id/footer"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_alignParentBottom="true">
+
+        <TextView
+            android:id="@+id/rotateLBtn"
+            android:layout_width="80dp"
+            android:layout_height="match_parent"
+            android:layout_alignParentStart="true"
+            android:gravity="center"
+            android:text="+90°"/>
+
+        <TextView
+            android:id="@+id/rotateRBtn"
+            android:layout_width="80dp"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"
+            android:gravity="center"
+            android:text="-90°"/>
+    </RelativeLayout>
+
+    <sashiro.com.trimmingview.TrimmingView
+        android:id="@+id/trimmingView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@mipmap/swissroad"/>
+        android:layout_above="@id/footer"
+        android:src="@mipmap/swissroad"
+        app:minPadding="40dp"
+        app:ratio="0.8333"
+        app:showTrimBg="true"/>
 
-</android.support.constraint.ConstraintLayout>
+</RelativeLayout>
