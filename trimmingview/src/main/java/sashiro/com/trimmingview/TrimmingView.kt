@@ -7,6 +7,8 @@ import android.graphics.Path
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import sashiro.com.trimmingview.ext.*
+import sashiro.com.trimmingview.model.TrimmingViewConfig
+import kotlin.properties.Delegates
 
 class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(context, attributeSet) {
     constructor(context: Context) : this(context, null)
@@ -19,11 +21,12 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
 
     private var needCalTriRectF = false
     // attrs
-    private var trimBorderColor: Int = getColor(R.color.black)
-    private var trimBgColor: Int = getColor(R.color.trans_black)
-    private var trimBorderWidth: Float = 0f
-    private var showTrimBg: Boolean = false
-    private var minPadding: Float = 0f
+    var config: TrimmingViewConfig by Delegates.observable(TrimmingViewConfig.Builder(context).build()) { _, _, _ ->
+        needCalTriRectF = true
+        needCalImg = true
+        applyColor()
+        requestLayout()
+    }
 
     override fun onGlobalLayout() {
         if (needCalTriRectF) {
@@ -33,13 +36,13 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
             // calculate trimPath
             // find standard line
             val isWidthStandard = when (rectFHasRotated) {
-                false -> ((widthF - 2 * minPadding) / borderRatio) <= heightF
-                true -> ((widthF - 2 * minPadding) * borderRatio) <= heightF
+                false -> ((widthF - 2 * config.minPadding) / borderRatio) <= heightF
+                true -> ((widthF - 2 * config.minPadding) * borderRatio) <= heightF
             }
             val borderStandardLine = when {
                 (isWidthStandard && !rectFHasRotated) ||
-                        (isWidthStandard && rectFHasRotated) -> widthF - 2 * minPadding
-                else -> heightF - 2 * minPadding
+                        (isWidthStandard && rectFHasRotated) -> widthF - 2 * config.minPadding
+                else -> heightF - 2 * config.minPadding
             }
             val otherLine = when {
                 (isWidthStandard && !rectFHasRotated) ||
@@ -47,20 +50,20 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
                 else -> borderStandardLine * borderRatio
             }
             val left = when {
-                isWidthStandard -> minPadding
+                isWidthStandard -> config.minPadding
                 else -> (widthF - otherLine) / 2
             }
             val right = when {
-                isWidthStandard -> borderStandardLine + minPadding
+                isWidthStandard -> borderStandardLine + config.minPadding
                 else -> left + otherLine
             }
             val top = when {
                 isWidthStandard -> (heightF - otherLine) / 2
-                else -> minPadding
+                else -> config.minPadding
             }
             val bottom = when {
                 isWidthStandard -> top + otherLine
-                else -> borderStandardLine + minPadding
+                else -> borderStandardLine + config.minPadding
             }
             // trimPath
             trimBorderPath
@@ -99,20 +102,21 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
     }
 
     init {
+//        config = TrimmingViewConfig.Builder(context).build()
         initAttrs(attributeSet)
 
         // init paint
         // border paint
         trimBorderPaint.apply {
             isAntiAlias = true
-            color = trimBorderColor
+            color = config.borderColor
             style = Paint.Style.STROKE
-            strokeWidth = trimBorderWidth
+            strokeWidth = config.borderWidth
         }
         // bg paint
         trimBgPaint.apply {
             isAntiAlias = true
-            color = trimBgColor
+            color = config.backgroundColor
             style = Paint.Style.FILL_AND_STROKE
         }
     }
@@ -120,7 +124,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
     // override method
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (showTrimBg)
+        if (config.showBackground)
             canvas.drawPath(trimBgPath, trimBgPaint)
         canvas.drawPath(trimBorderPath, trimBorderPaint)
     }
@@ -135,35 +139,37 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         attributeSet?.let {
             val typedArray = context.obtainStyledAttributes(attributeSet, R.styleable.TrimmingView)
             try {
-                trimBorderColor = typedArray.getColor(R.styleable.TrimmingView_trimBorderColor, getColor(R.color.black))
-                trimBgColor = typedArray.getColor(R.styleable.TrimmingView_trimBgColor, getColor(R.color.trans_black))
-                showTrimBg = typedArray.getBoolean(R.styleable.TrimmingView_showTrimBg, false)
-                minPadding = typedArray.getDimensionPixelSize(R.styleable.TrimmingView_minPadding, dp2px(10f)).toFloat()
-                trimBorderWidth = typedArray.getDimensionPixelSize(R.styleable.TrimmingView_trimBorderWidth, dp2px(1f)).toFloat()
-                borderRatio = typedArray.getFloat(R.styleable.TrimmingView_ratio, 1f)
+                config.borderColor = typedArray.getColor(R.styleable.TrimmingView_trimBorderColor, getColor(R.color.black))
+                config.backgroundColor = typedArray.getColor(R.styleable.TrimmingView_trimBgColor, getColor(R.color.trans_black))
+                config.showBackground = typedArray.getBoolean(R.styleable.TrimmingView_showTrimBg, false)
+                config.minPadding = typedArray.getDimensionPixelSize(R.styleable.TrimmingView_minPadding, resources.getDimensionPixelSize(R.dimen.min_padding_default)).toFloat()
+                config.borderWidth = typedArray.getDimensionPixelSize(R.styleable.TrimmingView_trimBorderWidth, resources.getDimensionPixelSize(R.dimen.border_width_default)).toFloat()
+                config.ratio = typedArray.getFloat(R.styleable.TrimmingView_ratio, 1f)
             } finally {
                 typedArray.recycle()
             }
         }
     }
 
+    private fun applyColor() {
+        trimBorderPaint.apply {
+            color = config.borderColor
+            strokeWidth = config.borderWidth
+        }
+        // bg paint
+        trimBgPaint.apply {
+            color = config.backgroundColor
+        }
+    }
+
     // public method
-    fun setRatio(ratio: Float): TrimmingView {
-        borderRatio = ratio
-        return this
-    }
-
-    fun addImgSize(width: Float, height: Float): TrimmingView {
-        imgWidth = width
-        imgHeight = height
-        return this
-    }
-
-    fun init() {
-        needCalTriRectF = true
-        needCalImg = true
-        requestLayout()
-    }
+//    fun setConfig(config: TrimmingViewConfig) {
+//        this.config.set(config)
+//        needCalTriRectF = true
+//        needCalImg = true
+//        applyColor()
+//        requestLayout()
+//    }
 
     fun turnClockwise() =
             rotateImg(getCurrentAngle() + 90f)
