@@ -14,11 +14,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         trimmingView.config = TrimmingViewConfig.Builder(baseContext)
-                .isBackgroundShow(false)
+                .isBackgroundShow(true)
                 .setRatio(16 / 9f)
                 .setBorderWidth(baseContext.dp2px(2f).toFloat())
                 .setBorderColor(baseContext.getCompColor(R.color.colorAccent))
                 .build()
+        trimmingView.playAnim = true
         rotateLBtn.setOnClickListener {
             trimmingView.turnClockwise()
         }

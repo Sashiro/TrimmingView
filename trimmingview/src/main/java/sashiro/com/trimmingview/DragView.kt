@@ -1,5 +1,6 @@
 package sashiro.com.trimmingview
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.PointF
@@ -12,6 +13,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewTreeObserver
+import android.view.animation.LinearInterpolator
 import sashiro.com.trimmingview.ext.*
 import sashiro.com.trimmingview.model.DragMode
 
@@ -32,14 +34,18 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     // protected field
     protected var needCalImg = true
     protected val standardRectF = RectF()
+    protected val oldRectF = RectF()
     protected val centerPointF = PointF(-1f, -1f)
     protected val dragInfo = DragInfo()
+    protected val oldDragInfo = DragInfo()
     protected val triRecord = TriRecord()
     protected var rectFHasRotated = false
 
     // public field
     var maxScaleAs = DEFAULT_MAX_SCALE_AS
     var dragMode: DragMode = DragMode.Default
+    var playAnim: Boolean = false
+    var animDuration: Long = DEFAULT_ANIM_DURATION
 
     // onGlobalLayout
     @CallSuper
@@ -64,10 +70,6 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         if (centerPointF.isEmpty)
             setCenter(widthF / 2, heightF / 2)
 
-        // dx dy
-        val dx = centerPointF.x - drawableWF / 2
-        val dy = centerPointF.y - drawableHF / 2
-
         // init standardScale
         standardScale = calculateStandardScale()
 
@@ -75,7 +77,9 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         maxScale = standardScale * maxScaleAs
         when (dragInfo.isEmpty()) {
             true -> {
-
+                // dx dy
+                val dx = centerPointF.x - drawableWF / 2
+                val dy = centerPointF.y - drawableHF / 2
                 photoMatrix.apply {
                     postTranslate(dx, dy)
                     postScale(standardScale, standardScale, centerPointF.x, centerPointF.y)
@@ -301,6 +305,36 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         photoMatrix.postTranslate(dx2, dy2)
     }
 
+    private fun rotateAnim() {
+        val animator = ValueAnimator()
+        animator.duration = animDuration
+        animator.setObjectValues(DragInfo())
+        animator.interpolator = LinearInterpolator()
+        animator.setEvaluator { fraction, _, _ ->
+            val scale = dragInfo.lastScale * fraction + (1 - fraction) * oldDragInfo.lastScale
+            val transX = dragInfo.lastTransX * fraction + (1 - fraction) * oldDragInfo.lastTransX
+            val transY = dragInfo.lastTransY * fraction + (1 - fraction) * oldDragInfo.lastTransY
+            val angle = when {
+                dragInfo.lastAngle == 0f && oldDragInfo.lastAngle == -270f ->
+                    -360f * fraction + (1 - fraction) * oldDragInfo.lastAngle
+                dragInfo.lastAngle == 0f && oldDragInfo.lastAngle == 270f ->
+                    360f * fraction + (1 - fraction) * oldDragInfo.lastAngle
+                else -> dragInfo.lastAngle * fraction + (1 - fraction) * oldDragInfo.lastAngle
+            }
+            DragInfo(transX, transY, scale, angle)
+        }
+        animator.addUpdateListener {
+            val updateDragInfo = it.animatedValue as DragInfo
+            photoMatrix.apply {
+                setScale(updateDragInfo.lastScale, updateDragInfo.lastScale)
+                postTranslate(updateDragInfo.lastTransX, updateDragInfo.lastTransY)
+                postRotate(updateDragInfo.lastAngle, centerPointF.x, centerPointF.y)
+            }
+            imageMatrix = photoMatrix
+        }
+        animator.start()
+    }
+
     // protect method
     protected fun setCenter(x: Float = -1f,
                             y: Float = -1f) =
@@ -347,6 +381,24 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         }
     }
 
+    protected fun onRotated() {
+        // save old dragInfo
+        oldDragInfo.set(dragInfo)
+
+        dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
+        standardScale = calculateStandardScale()
+        if (playAnim) {
+            rotateAnim()
+        } else {
+            photoMatrix.apply {
+                setScale(dragInfo.lastScale, dragInfo.lastScale)
+                postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
+                postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
+            }
+            imageMatrix = photoMatrix
+        }
+    }
+
     // override method
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -367,6 +419,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     companion object {
         private const val DEFAULT_MAX_SCALE_AS = 4
+        const val DEFAULT_ANIM_DURATION = 300L
     }
 
     // inner class
