@@ -38,7 +38,6 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     protected var imgWidth: Float = 0f
     protected var imgHeight: Float = 0f
     protected var rectFHasRotated = false
-    protected var borderRatio = 1f
 
     // public field
     var maxScaleAs = DEFAULT_MAX_SCALE_AS

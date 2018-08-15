@@ -36,8 +36,8 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
             // calculate trimPath
             // find standard line
             val isWidthStandard = when (rectFHasRotated) {
-                false -> ((widthF - 2 * config.minPadding) / borderRatio) <= heightF
-                true -> ((widthF - 2 * config.minPadding) * borderRatio) <= heightF
+                false -> ((widthF - 2 * config.minPadding) / config.ratio) <= heightF
+                true -> ((widthF - 2 * config.minPadding) * config.ratio) <= heightF
             }
             val borderStandardLine = when {
                 (isWidthStandard && !rectFHasRotated) ||
@@ -46,8 +46,8 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
             }
             val otherLine = when {
                 (isWidthStandard && !rectFHasRotated) ||
-                        (!isWidthStandard && rectFHasRotated) -> borderStandardLine / borderRatio
-                else -> borderStandardLine * borderRatio
+                        (!isWidthStandard && rectFHasRotated) -> borderStandardLine / config.ratio
+                else -> borderStandardLine * config.ratio
             }
             val left = when {
                 isWidthStandard -> config.minPadding
