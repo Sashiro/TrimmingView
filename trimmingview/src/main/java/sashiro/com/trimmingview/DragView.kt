@@ -34,10 +34,8 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     // protected field
     protected var needCalImg = true
     protected val standardRectF = RectF()
-    protected val oldRectF = RectF()
     protected val centerPointF = PointF(-1f, -1f)
     protected val dragInfo = DragInfo()
-    protected val oldDragInfo = DragInfo()
     protected val triRecord = TriRecord()
     protected var rectFHasRotated = false
 
@@ -81,7 +79,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                 val dx = centerPointF.x - drawableWF / 2
                 val dy = centerPointF.y - drawableHF / 2
                 photoMatrix.apply {
-                    postTranslate(dx, dy)
+                    setTranslate(dx, dy)
                     postScale(standardScale, standardScale, centerPointF.x, centerPointF.y)
                 }
                 // save dragInfo
@@ -250,25 +248,6 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         }
     }
 
-    private fun transformLengthInfo(lengthInfo: LengthInfo, angle: Float): DragInfo {
-        val sLeft = standardRectF.left
-        val sTop = standardRectF.top
-        val sWidth = standardRectF.width()
-        val sHeight = standardRectF.height()
-        return when (angle % 180 == 0f) {
-            true ->
-                DragInfo(sLeft - lengthInfo.left * sWidth,
-                        sTop - lengthInfo.top * sHeight,
-                        ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF,
-                        angle)
-            false ->
-                DragInfo((widthF - sHeight) / 2 - lengthInfo.left * sHeight,
-                        (heightF - sWidth) / 2 - lengthInfo.top * sWidth,
-                        ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
-                        angle)
-        }
-    }
-
     private fun transCorrect() {
         val currentScale = matrixValues.getScale(photoMatrix)
         val left = matrixValues.getTransX(photoMatrix)
@@ -305,21 +284,21 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         photoMatrix.postTranslate(dx2, dy2)
     }
 
-    private fun rotateAnim() {
+    private fun rotateAnim(startDragInfo: DragInfo, endDragInfo: DragInfo) {
         val animator = ValueAnimator()
         animator.duration = animDuration
         animator.setObjectValues(DragInfo())
         animator.interpolator = LinearInterpolator()
         animator.setEvaluator { fraction, _, _ ->
-            val scale = dragInfo.lastScale * fraction + (1 - fraction) * oldDragInfo.lastScale
-            val transX = dragInfo.lastTransX * fraction + (1 - fraction) * oldDragInfo.lastTransX
-            val transY = dragInfo.lastTransY * fraction + (1 - fraction) * oldDragInfo.lastTransY
+            val scale = endDragInfo.lastScale * fraction + (1 - fraction) * startDragInfo.lastScale
+            val transX = endDragInfo.lastTransX * fraction + (1 - fraction) * startDragInfo.lastTransX
+            val transY = endDragInfo.lastTransY * fraction + (1 - fraction) * startDragInfo.lastTransY
             val angle = when {
-                dragInfo.lastAngle == 0f && oldDragInfo.lastAngle == -270f ->
-                    -360f * fraction + (1 - fraction) * oldDragInfo.lastAngle
-                dragInfo.lastAngle == 0f && oldDragInfo.lastAngle == 270f ->
-                    360f * fraction + (1 - fraction) * oldDragInfo.lastAngle
-                else -> dragInfo.lastAngle * fraction + (1 - fraction) * oldDragInfo.lastAngle
+                endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == -270f ->
+                    -360f * fraction + (1 - fraction) * startDragInfo.lastAngle
+                endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == 270f ->
+                    360f * fraction + (1 - fraction) * startDragInfo.lastAngle
+                else -> endDragInfo.lastAngle * fraction + (1 - fraction) * startDragInfo.lastAngle
             }
             DragInfo(transX, transY, scale, angle)
         }
@@ -381,14 +360,33 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         }
     }
 
-    protected fun onRotated() {
+    protected fun transformLengthInfo(lengthInfo: LengthInfo, angle: Float): DragInfo {
+        val sLeft = standardRectF.left
+        val sTop = standardRectF.top
+        val sWidth = standardRectF.width()
+        val sHeight = standardRectF.height()
+        return when (angle % 180 == 0f) {
+            true ->
+                DragInfo(sLeft - lengthInfo.left * sWidth,
+                        sTop - lengthInfo.top * sHeight,
+                        ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF,
+                        angle)
+            false ->
+                DragInfo((widthF - sHeight) / 2 - lengthInfo.left * sHeight,
+                        (heightF - sWidth) / 2 - lengthInfo.top * sWidth,
+                        ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
+                        angle)
+        }
+    }
+
+    protected fun onDragViewRotated() {
         // save old dragInfo
-        oldDragInfo.set(dragInfo)
+        val oldDragInfo = DragInfo(dragInfo)
 
         dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
         standardScale = calculateStandardScale()
         if (playAnim) {
-            rotateAnim()
+            rotateAnim(oldDragInfo, dragInfo)
         } else {
             photoMatrix.apply {
                 setScale(dragInfo.lastScale, dragInfo.lastScale)
@@ -474,6 +472,12 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
             var lastScale: Float = 0f,
             var lastAngle: Float = 0f
     ) {
+        constructor(src: DragInfo) : this(
+                src.lastTransX,
+                src.lastTransY,
+                src.lastScale,
+                src.lastAngle)
+
         fun set(src: DragInfo) {
             lastTransX = src.lastTransX
             lastTransY = src.lastTransY

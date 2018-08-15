@@ -37,5 +37,8 @@ class MainActivity : AppCompatActivity() {
                     .putExtra("angle", trimmingView.getCurrentAngle())
             startActivity(intent)
         }
+        resetBtn.setOnClickListener {
+            trimmingView.reset()
+        }
     }
 }

@@ -66,73 +66,6 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         }
     }
 
-    fun rotateAnim(isClockwise: Boolean) {
-        val animator = ValueAnimator()
-        animator.duration = animDuration
-        animator.setObjectValues(SquarePoint())
-        animator.interpolator = LinearInterpolator()
-        val startPoint = SquarePoint(
-                PointF(oldRectF.left, oldRectF.top),
-                PointF(oldRectF.right, oldRectF.top),
-                PointF(oldRectF.right, oldRectF.bottom),
-                PointF(oldRectF.left, oldRectF.bottom))
-
-        val endPoint = SquarePoint(
-                PointF(standardRectF.left, standardRectF.top),
-                PointF(standardRectF.right, standardRectF.top),
-                PointF(standardRectF.right, standardRectF.bottom),
-                PointF(standardRectF.left, standardRectF.bottom))
-        animator.setEvaluator { fraction, startV, endV ->
-            val ltX = when (isClockwise) {
-                true -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
-                false -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
-            }
-            val ltY = when (isClockwise) {
-                true -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
-                false -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
-            }
-
-            val rtX = when (isClockwise) {
-                true -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
-                false -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
-            }
-            val rtY = when (isClockwise) {
-                true -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
-                false -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
-            }
-
-            val lbX = when (isClockwise) {
-                true -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
-                false -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
-            }
-            val lbY = when (isClockwise) {
-                true -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
-                false -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
-            }
-
-            val rbX = when (isClockwise) {
-                true -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
-                false -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
-            }
-            val rbY = when (isClockwise) {
-                true -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
-                false -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
-            }
-            SquarePoint(
-                    PointF(ltX, ltY),
-                    PointF(rtX, rtY),
-                    PointF(rbX, rbY),
-                    PointF(lbX, lbY))
-        }
-        animator.addUpdateListener {
-            val updateRectF = it.animatedValue as SquarePoint
-            setPathBySquarePoint(updateRectF)
-            invalidate()
-        }
-
-        animator.start()
-    }
-
     // override method
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -257,6 +190,12 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
 
     private fun rotateImg(angle: Float, isClockwise: Boolean): Float {
         if (drawable == null) return 0f
+        onTrimmingViewRotate(angle, isClockwise)
+        onDragViewRotated()
+        return getCurrentAngle()
+    }
+
+    private fun onTrimmingViewRotate(angle: Float, isClockwise: Boolean) {
         // rotate trimPath
         rectFHasRotated = angle % 180 != 0f
         // save lastTrimResult
@@ -267,17 +206,89 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         triRecord.lengthInfo.set(getLengthInfo(dragInfo))
 
         // save old standardRectF
-        oldRectF.set(standardRectF)
+        val oldRectF = RectF(standardRectF)
         calStandardRectF()
 
         // startAnim
         if (playAnim)
-            rotateAnim(isClockwise)
+            rotateAnim(isClockwise, oldRectF, standardRectF)
         else
             setPathByRectF(standardRectF)
-        onRotated()
+    }
 
-        return getCurrentAngle()
+    private fun rotateAnim(isClockwise: Boolean, startRectF: RectF, endRectF: RectF) {
+        val animator = ValueAnimator()
+        animator.duration = animDuration
+        animator.setObjectValues(SquarePoint())
+        animator.interpolator = LinearInterpolator()
+        val startPoint = SquarePoint.transForm(startRectF)
+        val endPoint = SquarePoint.transForm(endRectF)
+        animator.setEvaluator { fraction, startV, endV ->
+            val ltX = when (isClockwise) {
+                true -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
+                false -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
+            }
+            val ltY = when (isClockwise) {
+                true -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
+                false -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
+            }
+
+            val rtX = when (isClockwise) {
+                true -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
+                false -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
+            }
+            val rtY = when (isClockwise) {
+                true -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
+                false -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
+            }
+
+            val lbX = when (isClockwise) {
+                true -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
+                false -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
+            }
+            val lbY = when (isClockwise) {
+                true -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
+                false -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
+            }
+
+            val rbX = when (isClockwise) {
+                true -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
+                false -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
+            }
+            val rbY = when (isClockwise) {
+                true -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
+                false -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
+            }
+            SquarePoint(
+                    PointF(ltX, ltY),
+                    PointF(rtX, rtY),
+                    PointF(rbX, rbY),
+                    PointF(lbX, lbY))
+        }
+        animator.addUpdateListener {
+            val updateRectF = it.animatedValue as SquarePoint
+            setPathBySquarePoint(updateRectF)
+            invalidate()
+        }
+
+        animator.start()
+    }
+
+    // inner class
+    private data class SquarePoint(
+            val ltPoint: PointF = PointF(),
+            val rtPoint: PointF = PointF(),
+            val rbPoint: PointF = PointF(),
+            val lbPoint: PointF = PointF()
+    ) {
+        companion object {
+            fun transForm(rectF: RectF): SquarePoint =
+                    SquarePoint(
+                            PointF(rectF.left, rectF.top),
+                            PointF(rectF.right, rectF.top),
+                            PointF(rectF.right, rectF.bottom),
+                            PointF(rectF.left, rectF.bottom))
+        }
     }
 
     // public method
@@ -339,6 +350,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
     fun reset() {
         triRecord.clear()
         dragInfo.clear()
+        rectFHasRotated = false
         needCalTriRectF = true
         needCalImg = true
         requestLayout()

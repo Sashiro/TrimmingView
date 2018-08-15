@@ -38,6 +38,16 @@
             android:paddingEnd="10dp"
             android:paddingStart="10dp"
             android:text="trimming"/>
+
+        <TextView
+            android:id="@+id/resetBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_toEndOf="@id/goResultBtn"
+            android:gravity="center"
+            android:paddingEnd="10dp"
+            android:paddingStart="10dp"
+            android:text="reset"/>
     </RelativeLayout>
 
     <sashiro.com.trimmingview.TrimmingView
