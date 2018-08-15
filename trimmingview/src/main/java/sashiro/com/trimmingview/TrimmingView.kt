@@ -5,6 +5,7 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import sashiro.com.trimmingview.ext.*
+import sashiro.com.trimmingview.model.DragMode
 import sashiro.com.trimmingview.model.TrimmingResult
 import sashiro.com.trimmingview.model.TrimmingViewConfig
 import kotlin.properties.Delegates
@@ -137,12 +138,23 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         attributeSet?.let {
             val typedArray = context.obtainStyledAttributes(attributeSet, R.styleable.TrimmingView)
             try {
-                config.borderColor = typedArray.getColor(R.styleable.TrimmingView_trimBorderColor, getColor(R.color.black))
-                config.backgroundColor = typedArray.getColor(R.styleable.TrimmingView_trimBgColor, getColor(R.color.trans_black))
-                config.showBackground = typedArray.getBoolean(R.styleable.TrimmingView_showTrimBg, false)
-                config.minPadding = typedArray.getDimensionPixelSize(R.styleable.TrimmingView_minPadding, resources.getDimensionPixelSize(R.dimen.min_padding_default)).toFloat()
-                config.borderWidth = typedArray.getDimensionPixelSize(R.styleable.TrimmingView_trimBorderWidth, resources.getDimensionPixelSize(R.dimen.border_width_default)).toFloat()
-                config.ratio = typedArray.getFloat(R.styleable.TrimmingView_ratio, 1f)
+                (0..typedArray.indexCount).map {
+                    typedArray.getIndex(it)
+                }.forEach {
+                    when (it) {
+                        R.styleable.TrimmingView_trimBorderColor -> config.borderColor = typedArray.getColor(it, getColor(R.color.black))
+                        R.styleable.TrimmingView_trimBgColor -> config.backgroundColor = typedArray.getColor(it, getColor(R.color.trans_black))
+                        R.styleable.TrimmingView_showTrimBg -> config.showBackground = typedArray.getBoolean(it, false)
+                        R.styleable.TrimmingView_minPadding -> config.minPadding = typedArray.getDimensionPixelSize(it, resources.getDimensionPixelSize(R.dimen.min_padding_default)).toFloat()
+                        R.styleable.TrimmingView_trimBorderWidth -> config.borderWidth = typedArray.getDimensionPixelSize(it, resources.getDimensionPixelSize(R.dimen.border_width_default)).toFloat()
+                        R.styleable.TrimmingView_ratio -> config.ratio = typedArray.getFloat(it, 1f)
+                        R.styleable.TrimmingView_dragMode -> dragMode = when (typedArray.getInt(it, 0)) {
+                            1 -> DragMode.OverDrag
+                            2 -> DragMode.Disabled
+                            else -> DragMode.Default
+                        }
+                    }
+                }
             } finally {
                 typedArray.recycle()
             }
@@ -223,6 +235,8 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         requestLayout()
     }
 
+    fun getCurrentAngle() = dragInfo.lastAngle
+
     fun turnClockwise() =
             rotateImg(getCurrentAngle() + 90f)
 
@@ -230,11 +244,19 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
     fun turnAnticlockwise() =
             rotateImg(getCurrentAngle() - 90f)
 
-    override fun rotateImg(angle: Float): Float {
+    fun rotateImg(angle: Float): Float {
+        if (drawable == null) return 0f
         // rotate trimPath
         rectFHasRotated = angle % 180 != 0f
         needCalTriRectF = true
         needCalImg = true
-        return super.rotateImg(angle)
+        // save lastTrimResult
+        triRecord.angle = when (angle >= 360f || angle <= -360f) {
+            true -> 0f
+            false -> angle
+        }
+        triRecord.lengthInfo.set(getLengthInfo(dragInfo))
+        requestLayout()
+        return getCurrentAngle()
     }
 }

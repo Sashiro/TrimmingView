@@ -13,6 +13,7 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewTreeObserver
 import sashiro.com.trimmingview.ext.*
+import sashiro.com.trimmingview.model.DragMode
 
 /** @hide */
 open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatImageView(context, attributeSet),
@@ -38,7 +39,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     // public field
     var maxScaleAs = DEFAULT_MAX_SCALE_AS
-    var dragMode = true
+    var dragMode: DragMode = DragMode.Default
 
     // onGlobalLayout
     @CallSuper
@@ -72,7 +73,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
         // init photoMatrix
         maxScale = standardScale * maxScaleAs
-        when (dragInfo.isEmpty) {
+        when (dragInfo.isEmpty()) {
             true -> {
 
                 photoMatrix.apply {
@@ -117,10 +118,17 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         val intentScale = detector.scaleFactor
         if (intentScale != 1f) {
             changeWithoutRotate {
-                photoMatrix.postScale(intentScale, intentScale, centerPointF.x, centerPointF.y)
+                photoMatrix.postScale(intentScale, intentScale, detector.focusX, detector.focusY)
                 val currentScale = matrixValues.getScale(photoMatrix)
                 if (currentScale >= maxScale)
-                    photoMatrix.postScale(maxScale / currentScale, maxScale / currentScale, centerPointF.x, centerPointF.y)
+                    photoMatrix.postScale(maxScale / currentScale, maxScale / currentScale, detector.focusX, detector.focusY)
+
+                if (dragMode == DragMode.Default) {
+                    if (currentScale <= standardScale)
+                        photoMatrix.postScale(standardScale / currentScale, standardScale / currentScale, detector.focusX, detector.focusY)
+                    transCorrect()
+                }
+
             }
             imageMatrix = photoMatrix
         }
@@ -129,7 +137,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     // onTouch
     override fun onTouch(view: View?, event: MotionEvent): Boolean {
-        if (drawable == null || !dragMode) return true
+        if (drawable == null || dragMode == DragMode.Disabled) return true
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 lastTouchPointF.apply {
@@ -142,6 +150,12 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                     val dx = event.x - lastTouchPointF.x
                     val dy = event.y - lastTouchPointF.y
                     photoMatrix.postTranslate(dx, dy)
+
+                    if (dragMode == DragMode.Default)
+                        changeWithoutRotate {
+                            transCorrect()
+                        }
+
                     imageMatrix = photoMatrix
                 }
 
@@ -162,40 +176,8 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                             }
                         currentScale < standardScale ->
                             resetPhotoMatrix()
-                        else -> {
-                            val left = matrixValues.getTransX(photoMatrix)
-                            val right = left + drawableWF * currentScale
-                            val top = matrixValues.getTransY(photoMatrix)
-                            val bottom = top + drawableHF * currentScale
-
-                            val currentRectF = when (dragInfo.hasRotated) {
-                                true -> {
-                                    val width = standardRectF.height()
-                                    val height = standardRectF.width()
-                                    RectF(
-                                            centerPointF.x - width / 2,
-                                            centerPointF.y - height / 2,
-                                            centerPointF.x + width / 2,
-                                            centerPointF.y + height / 2
-                                    )
-                                }
-                                false -> standardRectF
-                            }
-
-                            val dx = when {
-                                left > currentRectF.left -> currentRectF.left - left
-                                right < currentRectF.right -> currentRectF.right - right
-                                else -> 0f
-                            }
-
-                            val dy = when {
-                                top > currentRectF.top -> currentRectF.top - top
-                                bottom < currentRectF.bottom -> currentRectF.bottom - bottom
-                                else -> 0f
-                            }
-
-                            photoMatrix.postTranslate(dx, dy)
-                        }
+                        else ->
+                            transCorrect()
                     }
 
                     lastTouchPointF.apply {
@@ -221,7 +203,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     private fun calculateStandardScale() =
             when {
-                !dragInfo.isEmpty && dragInfo.hasRotated ->
+                !dragInfo.isEmpty() && dragInfo.hasRotated() ->
                     when {
                         drawableHF < standardRectF.width()
                                 && drawableWF > standardRectF.height() ->
@@ -281,6 +263,42 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                         ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
                         angle)
         }
+    }
+
+    private fun transCorrect() {
+        val currentScale = matrixValues.getScale(photoMatrix)
+        val left = matrixValues.getTransX(photoMatrix)
+        val right = left + drawableWF * currentScale
+        val top = matrixValues.getTransY(photoMatrix)
+        val bottom = top + drawableHF * currentScale
+
+        val currentRectF = when (dragInfo.hasRotated()) {
+            true -> {
+                val width = standardRectF.height()
+                val height = standardRectF.width()
+                RectF(
+                        centerPointF.x - width / 2,
+                        centerPointF.y - height / 2,
+                        centerPointF.x + width / 2,
+                        centerPointF.y + height / 2
+                )
+            }
+            false -> standardRectF
+        }
+
+        val dx2 = when {
+            left > currentRectF.left -> currentRectF.left - left
+            right < currentRectF.right -> currentRectF.right - right
+            else -> 0f
+        }
+
+        val dy2 = when {
+            top > currentRectF.top -> currentRectF.top - top
+            bottom < currentRectF.bottom -> currentRectF.bottom - bottom
+            else -> 0f
+        }
+
+        photoMatrix.postTranslate(dx2, dy2)
     }
 
     // protect method
@@ -347,29 +365,12 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         requestLayout()
     }
 
-    // public method
-    @CallSuper
-    open fun rotateImg(angle: Float): Float {
-        if (drawable == null) return 0f
-        // save lastTrimResult
-        triRecord.angle = when (angle >= 360f || angle <= -360f) {
-            true -> 0f
-            false -> angle
-        }
-        triRecord.lengthInfo.set(getLengthInfo(dragInfo))
-
-        requestLayout()
-        return getCurrentAngle()
-    }
-
-    fun getCurrentAngle() = dragInfo.lastAngle
-
     companion object {
         private const val DEFAULT_MAX_SCALE_AS = 4
     }
 
-    // data class
-    data class LengthInfo(
+    // inner class
+    protected data class LengthInfo(
             var left: Float = 0f,
             var top: Float = 0f,
             var right: Float = 0f,
@@ -414,7 +415,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         }
     }
 
-    data class DragInfo(
+    protected data class DragInfo(
             var lastTransX: Float = -1f,
             var lastTransY: Float = -1f,
             var lastScale: Float = 0f,
@@ -434,15 +435,11 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
             lastAngle = 0f
         }
 
-
-    }
-
-    // ext
-    val DragInfo.isEmpty
-        get() = lastTransX == -1f ||
+        fun isEmpty() = lastTransX == -1f ||
                 lastTransY == -1f ||
                 lastScale == 0f
 
-    val DragInfo.hasRotated
-        get() = lastAngle % 180 != 0f
+        fun hasRotated() = lastAngle % 180 != 0f
+
+    }
 }

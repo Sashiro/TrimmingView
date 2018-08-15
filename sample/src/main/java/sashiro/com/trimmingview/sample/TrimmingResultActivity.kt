@@ -10,7 +10,6 @@ class TrimmingResultActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_trimming_result)
-        trimmingResultView.dragMode = false
         intent?.let {
             val left = it.getIntExtra("left", 0)
             val right = it.getIntExtra("right", 0)

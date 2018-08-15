@@ -7,5 +7,10 @@
         <attr name="showTrimBg" format="boolean"/>
         <attr name="minPadding" format="dimension"/>
         <attr name="ratio" format="float"/>
+        <attr name="dragMode" format="enum">
+            <enum name="defaultMode" value="0"/>
+            <enum name="overDrag" value="1"/>
+            <enum name="disabled" value="2"/>
+        </attr>
     </declare-styleable>
 </resources>

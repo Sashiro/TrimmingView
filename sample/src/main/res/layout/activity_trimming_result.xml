@@ -10,6 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:src="@mipmap/swissroad"
+        app:dragMode="disabled"
         app:showTrimBg="true"
         app:trimBgColor="@color/white"
         app:trimBorderColor="@color/white"/>
