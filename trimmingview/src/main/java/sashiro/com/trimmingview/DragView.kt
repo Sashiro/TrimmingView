@@ -13,7 +13,6 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewTreeObserver
 import sashiro.com.trimmingview.ext.*
-import sashiro.com.trimmingview.model.*
 
 /** @hide */
 open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatImageView(context, attributeSet),
@@ -34,13 +33,12 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     protected val standardRectF = RectF()
     protected val centerPointF = PointF(-1f, -1f)
     protected val dragInfo = DragInfo()
-    protected val lastTriResult = TriResult()
-    protected var imgWidth: Float = 0f
-    protected var imgHeight: Float = 0f
+    protected val triRecord = TriRecord()
     protected var rectFHasRotated = false
 
     // public field
     var maxScaleAs = DEFAULT_MAX_SCALE_AS
+    var dragMode = true
 
     // onGlobalLayout
     @CallSuper
@@ -49,7 +47,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
         // apply lastTriResult
         if (needApplyLastResult()) {
-            dragInfo.set(transformLengthInfo(lastTriResult.lengthInfo, lastTriResult.angle))
+            dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
         }
 
         // init standardRectF
@@ -131,7 +129,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     // onTouch
     override fun onTouch(view: View?, event: MotionEvent): Boolean {
-        if (drawable == null) return true
+        if (drawable == null || !dragMode) return true
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 lastTouchPointF.apply {
@@ -219,7 +217,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     // private method
     private fun needApplyLastResult() =
-            !lastTriResult.isEmpty() && !standardRectF.isEmpty
+            !triRecord.isEmpty() && !standardRectF.isEmpty
 
     private fun calculateStandardScale() =
             when {
@@ -266,7 +264,34 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         }
     }
 
-    private fun getLengthInfo(dragInfo: DragInfo): LengthInfo {
+    private fun transformLengthInfo(lengthInfo: LengthInfo, angle: Float): DragInfo {
+        val sLeft = standardRectF.left
+        val sTop = standardRectF.top
+        val sWidth = standardRectF.width()
+        val sHeight = standardRectF.height()
+        return when (angle % 180 == 0f) {
+            true ->
+                DragInfo(sLeft - lengthInfo.left * sWidth,
+                        sTop - lengthInfo.top * sHeight,
+                        ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF,
+                        angle)
+            false ->
+                DragInfo((widthF - sHeight) / 2 - lengthInfo.left * sHeight,
+                        (heightF - sWidth) / 2 - lengthInfo.top * sWidth,
+                        ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
+                        angle)
+        }
+    }
+
+    // protect method
+    protected fun setCenter(x: Float = -1f,
+                            y: Float = -1f) =
+            centerPointF.apply {
+                this.x = x
+                this.y = y
+            }
+
+    protected fun getLengthInfo(dragInfo: DragInfo): LengthInfo {
         val sLeft = standardRectF.left
         val sRight = standardRectF.right
         val sTop = standardRectF.top
@@ -304,33 +329,6 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         }
     }
 
-    private fun transformLengthInfo(lengthInfo: LengthInfo, angle: Float): DragInfo {
-        val sLeft = standardRectF.left
-        val sTop = standardRectF.top
-        val sWidth = standardRectF.width()
-        val sHeight = standardRectF.height()
-        return when (angle % 180 == 0f) {
-            true ->
-                DragInfo(sLeft - lengthInfo.left * sWidth,
-                        sTop - lengthInfo.top * sHeight,
-                        ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF,
-                        angle)
-            false ->
-                DragInfo((widthF - sHeight) / 2 - lengthInfo.left * sHeight,
-                        (heightF - sWidth) / 2 - lengthInfo.top * sWidth,
-                        ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
-                        angle)
-        }
-    }
-
-    // protect method
-    protected fun setCenter(x: Float = -1f,
-                            y: Float = -1f) =
-            centerPointF.apply {
-                this.x = x
-                this.y = y
-            }
-
     // override method
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -354,11 +352,11 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     open fun rotateImg(angle: Float): Float {
         if (drawable == null) return 0f
         // save lastTrimResult
-        lastTriResult.angle = when (angle >= 360f || angle <= -360f) {
+        triRecord.angle = when (angle >= 360f || angle <= -360f) {
             true -> 0f
             false -> angle
         }
-        lastTriResult.lengthInfo.set(getLengthInfo(dragInfo))
+        triRecord.lengthInfo.set(getLengthInfo(dragInfo))
 
         requestLayout()
         return getCurrentAngle()
@@ -369,4 +367,82 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     companion object {
         private const val DEFAULT_MAX_SCALE_AS = 4
     }
+
+    // data class
+    data class LengthInfo(
+            var left: Float = 0f,
+            var top: Float = 0f,
+            var right: Float = 0f,
+            var bottom: Float = 0f
+    ) {
+        fun set(src: LengthInfo) {
+            left = src.left
+            top = src.top
+            right = src.right
+            bottom = src.bottom
+        }
+
+        fun isEmpty() = left == 0f
+                && top == 0f
+                && right == 0f
+                && bottom == 0f
+
+        fun clear() {
+            left = 0f
+            top = 0f
+            right = 0f
+            bottom = 0f
+        }
+    }
+
+    protected data class TriRecord(
+            val lengthInfo: LengthInfo = LengthInfo(),
+            var angle: Float = 0f
+    ) {
+        fun set(src: TriRecord) {
+            lengthInfo.set(src.lengthInfo)
+            angle = src.angle
+        }
+
+        fun isEmpty() = lengthInfo.isEmpty()
+
+        fun hasRotated() = angle % 180 != 0f
+
+        fun clear() {
+            angle = 0f
+            lengthInfo.clear()
+        }
+    }
+
+    data class DragInfo(
+            var lastTransX: Float = -1f,
+            var lastTransY: Float = -1f,
+            var lastScale: Float = 0f,
+            var lastAngle: Float = 0f
+    ) {
+        fun set(src: DragInfo) {
+            lastTransX = src.lastTransX
+            lastTransY = src.lastTransY
+            lastScale = src.lastScale
+            lastAngle = src.lastAngle
+        }
+
+        fun clear() {
+            lastTransX = -1f
+            lastTransY = -1f
+            lastScale = 0f
+            lastAngle = 0f
+        }
+
+
+    }
+
+    // ext
+    val DragInfo.isEmpty
+        get() = lastTransX == -1f ||
+                lastTransY == -1f ||
+                lastScale == 0f
+
+    val DragInfo.hasRotated
+        get() = lastAngle % 180 != 0f
 }

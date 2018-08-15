@@ -1,12 +1,11 @@
 package sashiro.com.trimmingview
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
+import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import sashiro.com.trimmingview.ext.*
+import sashiro.com.trimmingview.model.TrimmingResult
 import sashiro.com.trimmingview.model.TrimmingViewConfig
 import kotlin.properties.Delegates
 
@@ -102,7 +101,6 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
     }
 
     init {
-//        config = TrimmingViewConfig.Builder(context).build()
         initAttrs(attributeSet)
 
         // init paint
@@ -163,13 +161,67 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
     }
 
     // public method
-//    fun setConfig(config: TrimmingViewConfig) {
-//        this.config.set(config)
-//        needCalTriRectF = true
-//        needCalImg = true
-//        applyColor()
-//        requestLayout()
-//    }
+    fun getResult(imgWidth: Int, imgHeight: Int): TrimmingResult {
+        val lengthInfo = getLengthInfo(dragInfo)
+        val sWidth = imgWidth / (1 + lengthInfo.left + lengthInfo.right)
+        val sHeight = imgHeight / (1 + lengthInfo.top + lengthInfo.bottom)
+        val left = Math.round(lengthInfo.left * sWidth).let {
+            when {
+                it < 0 -> 0
+                else -> it
+            }
+        }
+        val right = Math.round(imgWidth - lengthInfo.right * sWidth).let {
+            when {
+                it > imgWidth -> imgWidth
+                else -> it
+            }
+        }
+        val top = Math.round(lengthInfo.top * sHeight).let {
+            when {
+                it < 0 -> 0
+                else -> it
+            }
+        }
+        val bottom = Math.round(imgHeight - lengthInfo.bottom * sHeight).let {
+            when {
+                it > imgHeight -> imgHeight
+                else -> it
+            }
+        }
+        return TrimmingResult(Rect(left, top, right, bottom), getCurrentAngle())
+    }
+
+    fun setResult(imgWidth: Int, imgHeight: Int, trimmingResult: TrimmingResult) {
+        triRecord.clear()
+        dragInfo.clear()
+        config.ratio = trimmingResult.trimmingRect.width() / trimmingResult.trimmingRect.height().toFloat()
+        needCalTriRectF = true
+        needCalImg = true
+
+
+        val left = trimmingResult.trimmingRect.left / trimmingResult.trimmingRect.width().toFloat()
+        val right = (imgWidth - trimmingResult.trimmingRect.right) / trimmingResult.trimmingRect.width().toFloat()
+        val top = trimmingResult.trimmingRect.top / trimmingResult.trimmingRect.height().toFloat()
+        val bottom = (imgHeight - trimmingResult.trimmingRect.bottom) / trimmingResult.trimmingRect.height().toFloat()
+
+        val lengthInfo = LengthInfo(left, top, right, bottom)
+        triRecord.set(TriRecord(lengthInfo, trimmingResult.angle))
+        rectFHasRotated = trimmingResult.angle % 180 != 0f
+        requestLayout()
+    }
+
+    fun changeRatio(ratio: Float) {
+
+    }
+
+    fun reset() {
+        triRecord.clear()
+        dragInfo.clear()
+        needCalTriRectF = true
+        needCalImg = true
+        requestLayout()
+    }
 
     fun turnClockwise() =
             rotateImg(getCurrentAngle() + 90f)

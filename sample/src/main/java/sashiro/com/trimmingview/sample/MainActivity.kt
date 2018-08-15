@@ -1,5 +1,6 @@
 package sashiro.com.trimmingview.sample
 
+import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import kotlinx.android.synthetic.main.activity_main.*
@@ -24,6 +25,16 @@ class MainActivity : AppCompatActivity() {
 
         rotateRBtn.setOnClickListener {
             trimmingView.turnAnticlockwise()
+        }
+        goResultBtn.setOnClickListener {
+            val result = trimmingView.getResult(2668, 2000)
+            val intent = Intent(this, TrimmingResultActivity::class.java)
+                    .putExtra("left", result.trimmingRect.left)
+                    .putExtra("right", result.trimmingRect.right)
+                    .putExtra("top", result.trimmingRect.top)
+                    .putExtra("bottom", result.trimmingRect.bottom)
+                    .putExtra("angle", trimmingView.getCurrentAngle())
+            startActivity(intent)
         }
     }
 }

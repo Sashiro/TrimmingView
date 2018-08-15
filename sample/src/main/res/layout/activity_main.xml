@@ -28,6 +28,16 @@
             android:layout_alignParentEnd="true"
             android:gravity="center"
             android:text="-90°"/>
+
+        <TextView
+            android:id="@+id/goResultBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:paddingEnd="10dp"
+            android:paddingStart="10dp"
+            android:text="trimming"/>
     </RelativeLayout>
 
     <sashiro.com.trimmingview.TrimmingView
