@@ -16,10 +16,10 @@ class MainActivity : AppCompatActivity() {
         trimmingView.config = TrimmingViewConfig.Builder(baseContext)
                 .isBackgroundShow(true)
                 .setRatio(16 / 9f)
+                .showAnim(true)
                 .setBorderWidth(baseContext.dp2px(2f).toFloat())
                 .setBorderColor(baseContext.getCompColor(R.color.colorAccent))
                 .build()
-        trimmingView.playAnim = true
         rotateLBtn.setOnClickListener {
             trimmingView.turnClockwise()
         }

@@ -23,7 +23,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
 
     private var needCalTriRectF = false
     // attrs
-    var config: TrimmingViewConfig by Delegates.observable(TrimmingViewConfig.Builder(context).build()) { _, _, _ ->
+    override var config: TrimmingViewConfig by Delegates.observable(TrimmingViewConfig.Builder(context).build()) { _, _, newValue ->
         needCalImg = true
         applyColor()
         calStandardRectF()
@@ -84,17 +84,17 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         attributeSet?.let {
             val typedArray = context.obtainStyledAttributes(attributeSet, R.styleable.TrimmingView)
             try {
-                (0..typedArray.indexCount).map {
-                    typedArray.getIndex(it)
-                }.forEach {
-                    when (it) {
-                        R.styleable.TrimmingView_trimBorderColor -> config.borderColor = typedArray.getColor(it, getColor(R.color.black))
-                        R.styleable.TrimmingView_trimBgColor -> config.backgroundColor = typedArray.getColor(it, getColor(R.color.trans_black))
-                        R.styleable.TrimmingView_showTrimBg -> config.showBackground = typedArray.getBoolean(it, false)
-                        R.styleable.TrimmingView_minPadding -> config.minPadding = typedArray.getDimensionPixelSize(it, resources.getDimensionPixelSize(R.dimen.min_padding_default)).toFloat()
-                        R.styleable.TrimmingView_trimBorderWidth -> config.borderWidth = typedArray.getDimensionPixelSize(it, resources.getDimensionPixelSize(R.dimen.border_width_default)).toFloat()
-                        R.styleable.TrimmingView_ratio -> config.ratio = typedArray.getFloat(it, 1f)
-                        R.styleable.TrimmingView_dragMode -> dragMode = when (typedArray.getInt(it, 0)) {
+                (0..typedArray.indexCount).map { i ->
+                    typedArray.getIndex(i)
+                }.forEach { index ->
+                    when (index) {
+                        R.styleable.TrimmingView_trimBorderColor -> config.borderColor = typedArray.getColor(index, getColor(R.color.black))
+                        R.styleable.TrimmingView_trimBgColor -> config.backgroundColor = typedArray.getColor(index, getColor(R.color.trans_black))
+                        R.styleable.TrimmingView_showTrimBg -> config.showBackground = typedArray.getBoolean(index, false)
+                        R.styleable.TrimmingView_minPadding -> config.minPadding = typedArray.getDimensionPixelSize(index, resources.getDimensionPixelSize(R.dimen.min_padding_default)).toFloat()
+                        R.styleable.TrimmingView_trimBorderWidth -> config.borderWidth = typedArray.getDimensionPixelSize(index, resources.getDimensionPixelSize(R.dimen.border_width_default)).toFloat()
+                        R.styleable.TrimmingView_ratio -> config.ratio = typedArray.getFloat(index, 1f)
+                        R.styleable.TrimmingView_dragMode -> config.dragMode = when (typedArray.getInt(index, 0)) {
                             1 -> DragMode.OverDrag
                             2 -> DragMode.Disabled
                             else -> DragMode.Default
@@ -210,7 +210,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         calStandardRectF()
 
         // startAnim
-        if (playAnim)
+        if (config.showAnim)
             rotateAnim(isClockwise, oldRectF, standardRectF)
         else
             setPathByRectF(standardRectF)
@@ -218,7 +218,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
 
     private fun rotateAnim(isClockwise: Boolean, startRectF: RectF, endRectF: RectF) {
         val animator = ValueAnimator()
-        animator.duration = animDuration
+        animator.duration = config.animDuration
         animator.setObjectValues(SquarePoint())
         animator.interpolator = LinearInterpolator()
         val startPoint = SquarePoint.transForm(startRectF)

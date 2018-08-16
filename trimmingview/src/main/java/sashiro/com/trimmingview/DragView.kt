@@ -16,9 +16,10 @@ import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
 import sashiro.com.trimmingview.ext.*
 import sashiro.com.trimmingview.model.DragMode
+import sashiro.com.trimmingview.model.TrimmingViewConfig
 
 /** @hide */
-open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatImageView(context, attributeSet),
+abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatImageView(context, attributeSet),
         ViewTreeObserver.OnGlobalLayoutListener, ScaleGestureDetector.OnScaleGestureListener,
         View.OnTouchListener {
 
@@ -40,10 +41,11 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
     protected var rectFHasRotated = false
 
     // public field
-    var maxScaleAs = DEFAULT_MAX_SCALE_AS
-    var dragMode: DragMode = DragMode.Default
-    var playAnim: Boolean = false
-    var animDuration: Long = DEFAULT_ANIM_DURATION
+    abstract var config: TrimmingViewConfig
+//    protected var maxScaleAs = DEFAULT_MAX_SCALE_AS
+//    protected var dragMode: DragMode = DragMode.Default
+//    protected var showAnim: Boolean = false
+//    protected var animDuration: Long = DEFAULT_ANIM_DURATION
 
     // onGlobalLayout
     @CallSuper
@@ -72,7 +74,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         standardScale = calculateStandardScale()
 
         // init photoMatrix
-        maxScale = standardScale * maxScaleAs
+        maxScale = standardScale * config.maxScaleAs
         when (dragInfo.isEmpty()) {
             true -> {
                 // dx dy
@@ -125,7 +127,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                 if (currentScale >= maxScale)
                     photoMatrix.postScale(maxScale / currentScale, maxScale / currentScale, detector.focusX, detector.focusY)
 
-                if (dragMode == DragMode.Default) {
+                if (config.dragMode == DragMode.Default) {
                     if (currentScale <= standardScale)
                         photoMatrix.postScale(standardScale / currentScale, standardScale / currentScale, detector.focusX, detector.focusY)
                     transCorrect()
@@ -139,7 +141,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     // onTouch
     override fun onTouch(view: View?, event: MotionEvent): Boolean {
-        if (drawable == null || dragMode == DragMode.Disabled) return true
+        if (drawable == null || config.dragMode == DragMode.Disabled) return true
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 lastTouchPointF.apply {
@@ -153,7 +155,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
                     val dy = event.y - lastTouchPointF.y
                     photoMatrix.postTranslate(dx, dy)
 
-                    if (dragMode == DragMode.Default)
+                    if (config.dragMode == DragMode.Default)
                         changeWithoutRotate {
                             transCorrect()
                         }
@@ -286,7 +288,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
     private fun rotateAnim(startDragInfo: DragInfo, endDragInfo: DragInfo) {
         val animator = ValueAnimator()
-        animator.duration = animDuration
+        animator.duration = config.animDuration
         animator.setObjectValues(DragInfo())
         animator.interpolator = LinearInterpolator()
         animator.setEvaluator { fraction, _, _ ->
@@ -385,7 +387,7 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
 
         dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
         standardScale = calculateStandardScale()
-        if (playAnim) {
+        if (config.showAnim) {
             rotateAnim(oldDragInfo, dragInfo)
         } else {
             photoMatrix.apply {
@@ -413,11 +415,6 @@ open class DragView(context: Context, attributeSet: AttributeSet?) : AppCompatIm
         super.setImageDrawable(drawable)
         needCalImg = true
         requestLayout()
-    }
-
-    companion object {
-        private const val DEFAULT_MAX_SCALE_AS = 4
-        const val DEFAULT_ANIM_DURATION = 300L
     }
 
     // inner class
