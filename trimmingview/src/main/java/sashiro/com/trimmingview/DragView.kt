@@ -1,6 +1,5 @@
 package sashiro.com.trimmingview
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.PointF
@@ -13,7 +12,6 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewTreeObserver
-import android.view.animation.LinearInterpolator
 import sashiro.com.trimmingview.ext.*
 import sashiro.com.trimmingview.model.DragMode
 import sashiro.com.trimmingview.model.TrimmingViewConfig
@@ -28,7 +26,7 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
     private var standardScale = 1f
     private var lastPointerCount = 0
     private val gestureDetector = ScaleGestureDetector(context, this)
-    private val photoMatrix = Matrix()
+    protected val photoMatrix = Matrix()
     private val matrixValues = FloatArray(9)
     private val lastTouchPointF = PointF()
 
@@ -42,10 +40,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
 
     // public field
     abstract var config: TrimmingViewConfig
-//    protected var maxScaleAs = DEFAULT_MAX_SCALE_AS
-//    protected var dragMode: DragMode = DragMode.Default
-//    protected var showAnim: Boolean = false
-//    protected var animDuration: Long = DEFAULT_ANIM_DURATION
 
     // onGlobalLayout
     @CallSuper
@@ -286,36 +280,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         photoMatrix.postTranslate(dx2, dy2)
     }
 
-    private fun rotateAnim(startDragInfo: DragInfo, endDragInfo: DragInfo) {
-        val animator = ValueAnimator()
-        animator.duration = config.animDuration
-        animator.setObjectValues(DragInfo())
-        animator.interpolator = LinearInterpolator()
-        animator.setEvaluator { fraction, _, _ ->
-            val scale = endDragInfo.lastScale * fraction + (1 - fraction) * startDragInfo.lastScale
-            val transX = endDragInfo.lastTransX * fraction + (1 - fraction) * startDragInfo.lastTransX
-            val transY = endDragInfo.lastTransY * fraction + (1 - fraction) * startDragInfo.lastTransY
-            val angle = when {
-                endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == -270f ->
-                    -360f * fraction + (1 - fraction) * startDragInfo.lastAngle
-                endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == 270f ->
-                    360f * fraction + (1 - fraction) * startDragInfo.lastAngle
-                else -> endDragInfo.lastAngle * fraction + (1 - fraction) * startDragInfo.lastAngle
-            }
-            DragInfo(transX, transY, scale, angle)
-        }
-        animator.addUpdateListener {
-            val updateDragInfo = it.animatedValue as DragInfo
-            photoMatrix.apply {
-                setScale(updateDragInfo.lastScale, updateDragInfo.lastScale)
-                postTranslate(updateDragInfo.lastTransX, updateDragInfo.lastTransY)
-                postRotate(updateDragInfo.lastAngle, centerPointF.x, centerPointF.y)
-            }
-            imageMatrix = photoMatrix
-        }
-        animator.start()
-    }
-
     // protect method
     protected fun setCenter(x: Float = -1f,
                             y: Float = -1f) =
@@ -381,30 +345,14 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         }
     }
 
-    protected fun onDragViewRotated() {
-        // save old dragInfo
-        val oldDragInfo = DragInfo(dragInfo)
-
-        dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
-        standardScale = calculateStandardScale()
-        if (config.showAnim) {
-            rotateAnim(oldDragInfo, dragInfo)
-        } else {
-            photoMatrix.apply {
-                setScale(dragInfo.lastScale, dragInfo.lastScale)
-                postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
-                postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
-            }
-            imageMatrix = photoMatrix
-        }
-    }
-
     // override method
+    @CallSuper
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         viewTreeObserver.addOnGlobalLayoutListener(this)
     }
 
+    @CallSuper
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         viewTreeObserver.removeOnGlobalLayoutListener(this)

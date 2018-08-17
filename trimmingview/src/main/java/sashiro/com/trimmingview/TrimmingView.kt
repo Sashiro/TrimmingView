@@ -190,13 +190,11 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
 
     private fun rotateImg(angle: Float, isClockwise: Boolean): Float {
         if (drawable == null) return 0f
-        onTrimmingViewRotate(angle, isClockwise)
-        onDragViewRotated()
+        onRotate(angle, isClockwise)
         return getCurrentAngle()
     }
 
-    private fun onTrimmingViewRotate(angle: Float, isClockwise: Boolean) {
-        // rotate trimPath
+    private fun onRotate(angle: Float, isClockwise: Boolean) {
         rectFHasRotated = angle % 180 != 0f
         // save lastTrimResult
         triRecord.angle = when (angle >= 360f || angle <= -360f) {
@@ -209,69 +207,112 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : DragView(con
         val oldRectF = RectF(standardRectF)
         calStandardRectF()
 
+        // save old dragInfo
+        val oldDragInfo = DragInfo(dragInfo)
+        dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
+
         // startAnim
         if (config.showAnim)
-            rotateAnim(isClockwise, oldRectF, standardRectF)
-        else
+            rotateAnim(isClockwise, oldRectF, standardRectF, oldDragInfo, dragInfo)
+        else {
+            // change rectF
             setPathByRectF(standardRectF)
+            // change img
+            photoMatrix.apply {
+                setScale(dragInfo.lastScale, dragInfo.lastScale)
+                postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
+                postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
+            }
+            imageMatrix = photoMatrix
+        }
     }
 
-    private fun rotateAnim(isClockwise: Boolean, startRectF: RectF, endRectF: RectF) {
+    private fun rotateAnim(isClockwise: Boolean,
+                           startRectF: RectF, endRectF: RectF,
+                           startDragInfo: DragInfo, endDragInfo: DragInfo) {
         val animator = ValueAnimator()
         animator.duration = config.animDuration
-        animator.setObjectValues(SquarePoint())
+        animator.setObjectValues(SquarePoint() to DragInfo())
         animator.interpolator = LinearInterpolator()
         val startPoint = SquarePoint.transForm(startRectF)
         val endPoint = SquarePoint.transForm(endRectF)
         animator.setEvaluator { fraction, startV, endV ->
-            val ltX = when (isClockwise) {
-                true -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
-                false -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
-            }
-            val ltY = when (isClockwise) {
-                true -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
-                false -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
-            }
-
-            val rtX = when (isClockwise) {
-                true -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
-                false -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
-            }
-            val rtY = when (isClockwise) {
-                true -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
-                false -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
-            }
-
-            val lbX = when (isClockwise) {
-                true -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
-                false -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
-            }
-            val lbY = when (isClockwise) {
-                true -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
-                false -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
-            }
-
-            val rbX = when (isClockwise) {
-                true -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
-                false -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
-            }
-            val rbY = when (isClockwise) {
-                true -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
-                false -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
-            }
-            SquarePoint(
-                    PointF(ltX, ltY),
-                    PointF(rtX, rtY),
-                    PointF(rbX, rbY),
-                    PointF(lbX, lbY))
+            val currentSquarePoint = getCurrentSquarePoint(isClockwise, fraction, startPoint, endPoint)
+            val currentDragInfo = getCurrentDragInfo(fraction, startDragInfo, endDragInfo)
+            currentSquarePoint to currentDragInfo
         }
         animator.addUpdateListener {
-            val updateRectF = it.animatedValue as SquarePoint
-            setPathBySquarePoint(updateRectF)
-            invalidate()
+            val updateRectF = it.animatedValue as Pair<SquarePoint, DragInfo>
+            // rotate rectF
+            setPathBySquarePoint(updateRectF.first)
+            // rotate img
+            photoMatrix.apply {
+                setScale(updateRectF.second.lastScale, updateRectF.second.lastScale)
+                postTranslate(updateRectF.second.lastTransX, updateRectF.second.lastTransY)
+                postRotate(updateRectF.second.lastAngle, centerPointF.x, centerPointF.y)
+            }
+            imageMatrix = photoMatrix
+        }
+        animator.start()
+    }
+
+    private fun getCurrentSquarePoint(isClockwise: Boolean, fraction: Float,
+                                      startPoint: SquarePoint, endPoint: SquarePoint): SquarePoint {
+        val ltX = when (isClockwise) {
+            true -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
+            false -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.ltPoint.x
+        }
+        val ltY = when (isClockwise) {
+            true -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
+            false -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.ltPoint.y
         }
 
-        animator.start()
+        val rtX = when (isClockwise) {
+            true -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
+            false -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.rtPoint.x
+        }
+        val rtY = when (isClockwise) {
+            true -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
+            false -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.rtPoint.y
+        }
+
+        val lbX = when (isClockwise) {
+            true -> endPoint.ltPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
+            false -> endPoint.rbPoint.x * fraction + (1 - fraction) * startPoint.lbPoint.x
+        }
+        val lbY = when (isClockwise) {
+            true -> endPoint.ltPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
+            false -> endPoint.rbPoint.y * fraction + (1 - fraction) * startPoint.lbPoint.y
+        }
+
+        val rbX = when (isClockwise) {
+            true -> endPoint.lbPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
+            false -> endPoint.rtPoint.x * fraction + (1 - fraction) * startPoint.rbPoint.x
+        }
+        val rbY = when (isClockwise) {
+            true -> endPoint.lbPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
+            false -> endPoint.rtPoint.y * fraction + (1 - fraction) * startPoint.rbPoint.y
+        }
+        return SquarePoint(
+                PointF(ltX, ltY),
+                PointF(rtX, rtY),
+                PointF(rbX, rbY),
+                PointF(lbX, lbY))
+    }
+
+    private fun getCurrentDragInfo(fraction: Float,
+                                   startDragInfo: DragInfo, endDragInfo: DragInfo): DragInfo {
+        val scale = endDragInfo.lastScale * fraction + (1 - fraction) * startDragInfo.lastScale
+        val transX = endDragInfo.lastTransX * fraction + (1 - fraction) * startDragInfo.lastTransX
+        val transY = endDragInfo.lastTransY * fraction + (1 - fraction) * startDragInfo.lastTransY
+        val angle = when {
+            endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == -270f ->
+                -360f * fraction + (1 - fraction) * startDragInfo.lastAngle
+            endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == 270f ->
+                360f * fraction + (1 - fraction) * startDragInfo.lastAngle
+            else -> endDragInfo.lastAngle * fraction + (1 - fraction) * startDragInfo.lastAngle
+        }
+        return DragInfo(transX, transY, scale, angle)
     }
 
     // inner class
