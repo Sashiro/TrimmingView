@@ -134,6 +134,7 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
     }
 
     // onTouch
+    @CallSuper
     override fun onTouch(view: View?, event: MotionEvent): Boolean {
         if (drawable == null || config.dragMode == DragMode.Disabled) return true
         when (event.action) {
