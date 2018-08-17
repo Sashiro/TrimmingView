@@ -8,16 +8,28 @@ import android.view.MotionEvent
 import android.view.View
 import sashiro.com.trimmingview.ext.*
 import sashiro.com.trimmingview.model.DragMode
+import sashiro.com.trimmingview.model.TrimmingViewConfig
+import kotlin.properties.Delegates
 
 /** @hide */
 abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragView(context, attributeSet) {
     constructor(context: Context) : this(context, null)
+
+    override var config: TrimmingViewConfig by Delegates.observable(TrimmingViewConfig.Builder(context).build()) { _, _, newValue ->
+        needCalImg = true
+        applyColor()
+        calStandardRectF()
+        setPathByRectF(standardRectF)
+        requestLayout()
+    }
 
     // private filed
     private val trimBorderPaint = Paint()
     private val trimBgPaint = Paint()
     private val trimBorderPath = Path()
     private val trimBgPath = Path()
+    private var dragType: DragType = DragType.Image
+    private val changeRectF: RectF = RectF()
 
     protected var needCalTriRectF = false
 
@@ -68,19 +80,81 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
         super.setImageDrawable(drawable)
     }
 
-    
-    // protected method
-    protected fun applyColor() {
-        trimBorderPaint.apply {
-            color = config.borderColor
-            strokeWidth = config.borderWidth
-        }
-        // bg paint
-        trimBgPaint.apply {
-            color = config.backgroundColor
+    override fun onTouch(view: View?, event: MotionEvent): Boolean {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                dragType = checkDragType(event, standardRectF)
+                changeRectF.set(standardRectF)
+                if (dragType != DragType.Image) {
+                    lastTouchPointF.set(event.x, event.y)
+                    return true
+                } else return super.onTouch(view, event)
+            }
+            else -> {
+                if (dragType != DragType.Image) {
+                    when (event.action) {
+                        MotionEvent.ACTION_MOVE -> {
+                            val dx = event.x - lastTouchPointF.x
+                            val dy = event.y - lastTouchPointF.y
+                            val currentSquarePoint = SquarePoint.transForm(standardRectF)
+                            when (dragType) {
+                                DragType.LTPoint -> {
+                                    currentSquarePoint.ltPoint.apply {
+                                        x += dx
+                                        y += dy
+                                    }
+                                    currentSquarePoint.lbPoint.x += dx
+                                    currentSquarePoint.rtPoint.y += dy
+                                }
+                                DragType.RTPoint -> {
+                                    currentSquarePoint.rtPoint.apply {
+                                        x += dx
+                                        y += dy
+                                    }
+                                    currentSquarePoint.rbPoint.x += dx
+                                    currentSquarePoint.ltPoint.y += dy
+                                }
+                                DragType.RBPoint -> {
+                                    currentSquarePoint.rbPoint.apply {
+                                        x += dx
+                                        y += dy
+                                    }
+                                    currentSquarePoint.rtPoint.x += dx
+                                    currentSquarePoint.lbPoint.y += dy
+                                }
+                                DragType.LBPoint -> {
+                                    currentSquarePoint.lbPoint.apply {
+                                        x += dx
+                                        y += dy
+                                    }
+                                    currentSquarePoint.ltPoint.x += dx
+                                    currentSquarePoint.rbPoint.y += dy
+                                }
+                            }
+                            setPathBySquarePoint(currentSquarePoint)
+                            changeRectF.set(currentSquarePoint.toRectF())
+                            invalidate()
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            config.ratio = changeRectF.width() / changeRectF.height()
+                            calStandardRectF()
+                            setPathByRectF(standardRectF)
+                            changeRectF.setEmpty()
+                            lastTouchPointF.set(-1f, -1f)
+                            dragType = DragType.Image
+                            invalidate()
+                        }
+                    }
+                    return true
+                } else
+                    return super.onTouch(view, event)
+
+
+            }
         }
     }
 
+    // protected method
     protected fun calStandardRectF() {
         // find standard line
         val isWidthStandard = when (rectFHasRotated) {
@@ -154,19 +228,19 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
     // private method
     private fun initAttrs(attributeSet: AttributeSet?) {
         attributeSet?.let {
-            val typedArray = context.obtainStyledAttributes(attributeSet, R.styleable.TrimmingView)
+            val typedArray = context.obtainStyledAttributes(attributeSet, R.styleable.RectFView)
             try {
                 (0..typedArray.indexCount).map { i ->
                     typedArray.getIndex(i)
                 }.forEach { index ->
                     when (index) {
-                        R.styleable.TrimmingView_trimBorderColor -> config.borderColor = typedArray.getColor(index, getColor(R.color.black))
-                        R.styleable.TrimmingView_trimBgColor -> config.backgroundColor = typedArray.getColor(index, getColor(R.color.trans_black))
-                        R.styleable.TrimmingView_showTrimBg -> config.showBackground = typedArray.getBoolean(index, false)
-                        R.styleable.TrimmingView_minPadding -> config.minPadding = typedArray.getDimensionPixelSize(index, resources.getDimensionPixelSize(R.dimen.min_padding_default)).toFloat()
-                        R.styleable.TrimmingView_trimBorderWidth -> config.borderWidth = typedArray.getDimensionPixelSize(index, resources.getDimensionPixelSize(R.dimen.border_width_default)).toFloat()
-                        R.styleable.TrimmingView_ratio -> config.ratio = typedArray.getFloat(index, 1f)
-                        R.styleable.TrimmingView_dragMode -> config.dragMode = when (typedArray.getInt(index, 0)) {
+                        R.styleable.RectFView_trimBorderColor -> config.borderColor = typedArray.getColor(index, getColor(R.color.black))
+                        R.styleable.RectFView_trimBgColor -> config.backgroundColor = typedArray.getColor(index, getColor(R.color.trans_black))
+                        R.styleable.RectFView_showTrimBg -> config.showBackground = typedArray.getBoolean(index, false)
+                        R.styleable.RectFView_minPadding -> config.minPadding = typedArray.getDimensionPixelSize(index, resources.getDimensionPixelSize(R.dimen.min_padding_default)).toFloat()
+                        R.styleable.RectFView_trimBorderWidth -> config.borderWidth = typedArray.getDimensionPixelSize(index, resources.getDimensionPixelSize(R.dimen.border_width_default)).toFloat()
+                        R.styleable.RectFView_ratio -> config.ratio = typedArray.getFloat(index, 1f)
+                        R.styleable.RectFView_dragMode -> config.dragMode = when (typedArray.getInt(index, 0)) {
                             1 -> DragMode.OverDrag
                             2 -> DragMode.Disabled
                             else -> DragMode.Default
@@ -179,6 +253,51 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
         }
     }
 
+    private fun applyColor() {
+        trimBorderPaint.apply {
+            color = config.borderColor
+            strokeWidth = config.borderWidth
+        }
+        // bg paint
+        trimBgPaint.apply {
+            color = config.backgroundColor
+        }
+    }
+
+    private fun checkDragType(event: MotionEvent, rectF: RectF): DragType {
+        val standardSquarePointF = SquarePoint.transForm(rectF)
+        val halfWidth = dp2px(50f) / 2
+        // left top area
+        val ltRectF = RectF(standardSquarePointF.ltPoint.x - halfWidth / 2,
+                standardSquarePointF.ltPoint.y - halfWidth / 2,
+                standardSquarePointF.ltPoint.x + halfWidth / 2,
+                standardSquarePointF.ltPoint.y + halfWidth / 2)
+        // right top area
+        val rtRectF = RectF(standardSquarePointF.rtPoint.x - halfWidth / 2,
+                standardSquarePointF.rtPoint.y - halfWidth / 2,
+                standardSquarePointF.rtPoint.x + halfWidth / 2,
+                standardSquarePointF.rtPoint.y + halfWidth / 2)
+
+        // right bottom area
+        val rbRectF = RectF(standardSquarePointF.rbPoint.x - halfWidth / 2,
+                standardSquarePointF.rbPoint.y - halfWidth / 2,
+                standardSquarePointF.rbPoint.x + halfWidth / 2,
+                standardSquarePointF.rbPoint.y + halfWidth / 2)
+        // left bottom area
+        val lbRectF = RectF(standardSquarePointF.lbPoint.x - halfWidth / 2,
+                standardSquarePointF.lbPoint.y - halfWidth / 2,
+                standardSquarePointF.lbPoint.x + halfWidth / 2,
+                standardSquarePointF.lbPoint.y + halfWidth / 2)
+
+        return when {
+            ltRectF.contains(event.x, event.y) -> DragType.LTPoint
+            rtRectF.contains(event.x, event.y) -> DragType.RTPoint
+            rbRectF.contains(event.x, event.y) -> DragType.RBPoint
+            lbRectF.contains(event.x, event.y) -> DragType.LBPoint
+            else -> DragType.Image
+        }
+    }
+
     // inner class
     protected data class SquarePoint(
             val ltPoint: PointF = PointF(),
@@ -186,6 +305,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
             val rbPoint: PointF = PointF(),
             val lbPoint: PointF = PointF()
     ) {
+
+        fun toRectF() =
+                RectF(ltPoint.x, ltPoint.y, rbPoint.x, rbPoint.y)
+
         companion object {
             fun transForm(rectF: RectF): SquarePoint =
                     SquarePoint(
@@ -194,6 +317,14 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             PointF(rectF.right, rectF.bottom),
                             PointF(rectF.left, rectF.bottom))
         }
+    }
+
+    private sealed class DragType {
+        object Image : DragType()
+        object LTPoint : DragType()
+        object RTPoint : DragType()
+        object RBPoint : DragType()
+        object LBPoint : DragType()
     }
 
 

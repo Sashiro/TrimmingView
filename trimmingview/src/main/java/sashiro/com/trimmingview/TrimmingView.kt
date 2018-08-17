@@ -14,14 +14,6 @@ import kotlin.properties.Delegates
 class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(context, attributeSet) {
     constructor(context: Context) : this(context, null)
 
-    override var config: TrimmingViewConfig by Delegates.observable(TrimmingViewConfig.Builder(context).build()) { _, _, newValue ->
-        needCalImg = true
-        applyColor()
-        calStandardRectF()
-        setPathByRectF(standardRectF)
-        requestLayout()
-    }
-
     // private method
     private fun rotateImg(angle: Float, isClockwise: Boolean) {
         if (drawable == null) return

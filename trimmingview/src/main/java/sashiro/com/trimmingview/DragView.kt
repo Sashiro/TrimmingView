@@ -28,7 +28,7 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
     private val gestureDetector = ScaleGestureDetector(context, this)
     protected val photoMatrix = Matrix()
     private val matrixValues = FloatArray(9)
-    private val lastTouchPointF = PointF()
+    protected val lastTouchPointF = PointF()
 
     // protected field
     protected var needCalImg = true
