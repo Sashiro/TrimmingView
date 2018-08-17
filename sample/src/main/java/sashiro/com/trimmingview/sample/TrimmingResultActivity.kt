@@ -11,14 +11,11 @@ class TrimmingResultActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_trimming_result)
         intent?.let {
-            val left = it.getIntExtra("left", 0)
-            val right = it.getIntExtra("right", 0)
-            val top = it.getIntExtra("top", 0)
-            val bottom = it.getIntExtra("bottom", 0)
+            val rect = it.getParcelableExtra<Rect>("rect")
             val angle = it.getFloatExtra("angle", 0f)
 
             trimmingResultView.setResult(2668, 2000,
-                    TrimmingResult(Rect(left, top, right, bottom), angle))
+                    TrimmingResult(rect, angle))
         }
 
     }
