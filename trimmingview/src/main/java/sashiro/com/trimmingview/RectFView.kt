@@ -428,7 +428,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
     private fun changeTrimFrameAnim(startDragInfo: DragInfo, endDragInfo: DragInfo,
                                     startRectF: RectF, endRectF: RectF) {
         val animator = ValueAnimator()
-        animator.duration = config.animDuration
+        animator.duration = config.trimFrameAnimDuration
         animator.setObjectValues(RectF() to DragInfo())
         animator.interpolator = LinearInterpolator()
         animator.setEvaluator { fraction, _, _ ->

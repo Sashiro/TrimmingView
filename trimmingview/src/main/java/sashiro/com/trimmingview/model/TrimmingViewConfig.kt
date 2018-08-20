@@ -15,7 +15,8 @@ class TrimmingViewConfig private constructor(
         var animDuration: Long,
         var dragMode: DragMode,
         var maxScaleAs: Int,
-        var canTrimFrameDrag: Boolean
+        var canTrimFrameDrag: Boolean,
+        var trimFrameAnimDuration: Long
 ) {
     fun set(src: TrimmingViewConfig) {
         this.borderColor = src.borderColor
@@ -29,6 +30,7 @@ class TrimmingViewConfig private constructor(
         this.dragMode = src.dragMode
         this.maxScaleAs = src.maxScaleAs
         this.canTrimFrameDrag = src.canTrimFrameDrag
+        this.trimFrameAnimDuration = src.trimFrameAnimDuration
     }
 
 
@@ -44,6 +46,7 @@ class TrimmingViewConfig private constructor(
         private var dragMode: DragMode
         private var maxScaleAs: Int
         private var canTrimFrameDrag: Boolean
+        private var trimFrameAnimDuration: Long
 
         init {
             borderColor = context.getCompColor(R.color.black)
@@ -57,6 +60,7 @@ class TrimmingViewConfig private constructor(
             dragMode = DragMode.Default
             maxScaleAs = DEFAULT_MAX_SCALE_AS
             canTrimFrameDrag = false
+            trimFrameAnimDuration = DEFAULT_FRAME_ANIM_DURATION
         }
 
         fun setBorderColor(borderColor: Int): Builder {
@@ -114,6 +118,11 @@ class TrimmingViewConfig private constructor(
             return this
         }
 
+        fun setTrimFrameAnimDuration(trimFrameAnimDuration: Long): Builder {
+            this.trimFrameAnimDuration = trimFrameAnimDuration
+            return this
+        }
+
         fun build(): TrimmingViewConfig =
                 TrimmingViewConfig(borderColor,
                         backgroundColor,
@@ -125,13 +134,15 @@ class TrimmingViewConfig private constructor(
                         animDuration,
                         dragMode,
                         maxScaleAs,
-                        canTrimFrameDrag)
+                        canTrimFrameDrag,
+                        trimFrameAnimDuration)
 
     }
 
     companion object {
         const val DEFAULT_MAX_SCALE_AS = 4
         const val DEFAULT_ANIM_DURATION = 250L
+        const val DEFAULT_FRAME_ANIM_DURATION = 150L
     }
 
 }
