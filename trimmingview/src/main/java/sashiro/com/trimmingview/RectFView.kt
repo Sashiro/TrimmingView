@@ -1,11 +1,13 @@
 package sashiro.com.trimmingview
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.LinearInterpolator
 import sashiro.com.trimmingview.ext.*
 import sashiro.com.trimmingview.model.DragMode
 import sashiro.com.trimmingview.model.TrimmingViewConfig
@@ -204,26 +206,35 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             invalidate()
                         }
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            // save oldDragInfo
+                            val oldDragInfo = DragInfo(dragInfo)
+
                             // get new lengthInfo
                             triRecord.lengthInfo.set(getLengthInfoByChange(dragInfo, standardRectF, changeRectF))
-                            // save new ratio
+                            // set new ratio
                             config.ratio = when (rectFHasRotated) {
                                 false -> changeRectF.width() / changeRectF.height()
                                 true -> changeRectF.height() / changeRectF.width()
                             }
                             // set new standardRectF
-                            setStandardRectF()
+                            standardRectF.set(calStandardRectF())
 
                             //
                             dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
                             standardScale = calculateStandardScale()
-                            photoMatrix.apply {
-                                setScale(dragInfo.lastScale, dragInfo.lastScale)
-                                postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
-                                postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
+
+                            if (config.showAnim) {
+                                changeTrimFrameAnim(oldDragInfo, dragInfo, RectF(changeRectF), standardRectF)
+                            } else {
+                                setPathByRectF(standardRectF)
+                                photoMatrix.apply {
+                                    setScale(dragInfo.lastScale, dragInfo.lastScale)
+                                    postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
+                                    postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
+                                }
+                                imageMatrix = photoMatrix
+                                invalidate()
                             }
-                            imageMatrix = photoMatrix
-                            invalidate()
 
                             // clear data
                             changeRectF.setEmpty()
@@ -385,6 +396,41 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
             lbRectF.contains(event.x, event.y) -> DragType.LBPoint
             else -> DragType.Image
         }
+    }
+
+    private fun changeTrimFrameAnim(startDragInfo: DragInfo, endDragInfo: DragInfo,
+                                    startRectF: RectF, endRectF: RectF) {
+        val animator = ValueAnimator()
+        animator.duration = config.animDuration
+        animator.setObjectValues(RectF() to DragInfo())
+        animator.interpolator = LinearInterpolator()
+        animator.setEvaluator { fraction, _, _ ->
+            val currentRectF = RectF(
+                    endRectF.left * fraction + startRectF.left * (1 - fraction),
+                    endRectF.top * fraction + startRectF.top * (1 - fraction),
+                    endRectF.right * fraction + startRectF.right * (1 - fraction),
+                    endRectF.bottom * fraction + startRectF.bottom * (1 - fraction)
+            )
+            val scale = endDragInfo.lastScale * fraction + (1 - fraction) * startDragInfo.lastScale
+            val transX = endDragInfo.lastTransX * fraction + (1 - fraction) * startDragInfo.lastTransX
+            val transY = endDragInfo.lastTransY * fraction + (1 - fraction) * startDragInfo.lastTransY
+            val currentDragInfo = DragInfo(transX, transY, scale, endDragInfo.lastAngle)
+            currentRectF to currentDragInfo
+        }
+        animator.addUpdateListener {
+            val update = it.animatedValue as Pair<RectF, DragInfo>
+            setPathByRectF(update.first)
+            val currentDragInfo = update.second
+            photoMatrix.apply {
+                setScale(currentDragInfo.lastScale, currentDragInfo.lastScale)
+                postTranslate(currentDragInfo.lastTransX, currentDragInfo.lastTransY)
+                postRotate(currentDragInfo.lastAngle, centerPointF.x, centerPointF.y)
+            }
+            imageMatrix = photoMatrix
+            invalidate()
+        }
+
+        animator.start()
     }
 
     // inner class

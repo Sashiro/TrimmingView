@@ -8,8 +8,6 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.animation.LinearInterpolator
 import sashiro.com.trimmingview.model.TrimmingResult
-import sashiro.com.trimmingview.model.TrimmingViewConfig
-import kotlin.properties.Delegates
 
 class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(context, attributeSet) {
     constructor(context: Context) : this(context, null)
@@ -62,7 +60,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(co
         animator.interpolator = LinearInterpolator()
         val startPoint = SquarePoint.transForm(startRectF)
         val endPoint = SquarePoint.transForm(endRectF)
-        animator.setEvaluator { fraction, startV, endV ->
+        animator.setEvaluator { fraction, _, _ ->
             val currentSquarePoint = getCurrentSquarePoint(isClockwise, fraction, startPoint, endPoint)
             val currentDragInfo = getCurrentDragInfo(fraction, startDragInfo, endDragInfo)
             currentSquarePoint to currentDragInfo
@@ -78,6 +76,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(co
                 postRotate(updateRectF.second.lastAngle, centerPointF.x, centerPointF.y)
             }
             imageMatrix = photoMatrix
+            invalidate()
         }
         animator.start()
     }
