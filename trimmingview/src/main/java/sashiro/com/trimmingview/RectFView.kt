@@ -242,6 +242,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             //
                             dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
                             standardScale = calculateStandardScale()
+                            maxScale = standardScale * config.maxScaleAs
                             photoMatrix.apply {
                                 setScale(dragInfo.lastScale, dragInfo.lastScale)
                                 postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)

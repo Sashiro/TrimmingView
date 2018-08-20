@@ -37,6 +37,10 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(co
         val oldDragInfo = DragInfo(dragInfo)
         dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
 
+        // change standardScale
+        standardScale = calculateStandardScale()
+        maxScale = standardScale * config.maxScaleAs
+
         // startAnim
         if (config.showAnim)
             rotateAnim(isClockwise, oldRectF, standardRectF, oldDragInfo, dragInfo)
