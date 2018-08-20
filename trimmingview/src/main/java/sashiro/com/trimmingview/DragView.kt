@@ -22,7 +22,7 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         View.OnTouchListener {
 
     // private field
-    private var maxScale = 1f
+    protected var maxScale = 1f
     private var lastPointerCount = 0
     private val gestureDetector = ScaleGestureDetector(context, this)
     protected val photoMatrix = Matrix()
