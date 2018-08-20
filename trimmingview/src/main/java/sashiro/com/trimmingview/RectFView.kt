@@ -88,10 +88,29 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                     lastTouchPointF.set(event.x, event.y)
 
                     // calculate maxRectF
-                    maxRectF.set(dragInfo.lastTransX,
-                            dragInfo.lastTransY,
-                            dragInfo.lastTransX + drawableWF * dragInfo.lastScale,
-                            dragInfo.lastTransY + dragInfo.lastScale * drawableHF)
+                    val left = dragInfo.lastTransX
+                    val right = left + drawableWF * dragInfo.lastScale
+                    val top = dragInfo.lastTransY
+                    val bottom = top + dragInfo.lastScale * drawableHF
+                    when (dragInfo.lastAngle) {
+                        90f, -270f ->
+                            maxRectF.set((widthF + heightF) / 2 - bottom,
+                                    (heightF - widthF) / 2 + left,
+                                    (heightF + widthF) / 2 - top,
+                                    (heightF - widthF) / 2 + right)
+                        180f, -180f ->
+                            maxRectF.set(widthF - right,
+                                    heightF - bottom,
+                                    widthF - left,
+                                    heightF - top)
+                        -90f, 270f ->
+                            maxRectF.set((widthF - heightF) / 2 + top,
+                                    (widthF + heightF) / 2 - right,
+                                    (widthF - heightF) / 2 + bottom,
+                                    (widthF + heightF) / 2 - left)
+                        else ->
+                            maxRectF.set(left, top, right, bottom)
+                    }
 
                     // calculate minRectF
                     val maxDx = standardRectF.width() - drawableWF * dragInfo.lastScale / config.maxScaleAs
