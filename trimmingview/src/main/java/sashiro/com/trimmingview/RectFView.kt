@@ -29,6 +29,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
     private val trimBgPath = Path()
     private var dragType: DragType = DragType.Image
     private val changeRectF: RectF = RectF()
+    private val maxRectF: RectF = RectF()
 
     protected var needCalTriRectF = false
 
@@ -83,6 +84,13 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                 changeRectF.set(standardRectF)
                 if (dragType != DragType.Image) {
                     lastTouchPointF.set(event.x, event.y)
+
+                    // calculate maxRectF
+                    maxRectF.set(dragInfo.lastTransX,
+                            dragInfo.lastTransY,
+                            dragInfo.lastTransX + drawableWF * dragInfo.lastScale,
+                            dragInfo.lastTransY + dragInfo.lastScale * drawableHF)
+
                     return true
                 } else return super.onTouch(view, event)
             }
@@ -127,6 +135,27 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                     currentSquarePoint.rbPoint.y += dy
                                 }
                             }
+                            // check max
+                            if (currentSquarePoint.ltPoint.x < maxRectF.left ||
+                                    currentSquarePoint.rtPoint.x < maxRectF.left) {
+                                currentSquarePoint.ltPoint.x = maxRectF.left
+                                currentSquarePoint.lbPoint.x = maxRectF.left
+                            }
+                            if (currentSquarePoint.ltPoint.y < maxRectF.top ||
+                                    currentSquarePoint.rtPoint.y < maxRectF.top) {
+                                currentSquarePoint.ltPoint.y = maxRectF.top
+                                currentSquarePoint.rtPoint.y = maxRectF.top
+                            }
+                            if (currentSquarePoint.rtPoint.x > maxRectF.right ||
+                                    currentSquarePoint.rbPoint.x > maxRectF.right) {
+                                currentSquarePoint.rtPoint.x = maxRectF.right
+                                currentSquarePoint.rbPoint.x = maxRectF.right
+                            }
+                            if (currentSquarePoint.lbPoint.y > maxRectF.bottom ||
+                                    currentSquarePoint.rbPoint.y > maxRectF.bottom) {
+                                currentSquarePoint.lbPoint.y = maxRectF.bottom
+                                currentSquarePoint.rbPoint.y = maxRectF.bottom
+                            }
                             setPathBySquarePoint(currentSquarePoint)
                             changeRectF.set(currentSquarePoint.toRectF())
                             invalidate()
@@ -155,6 +184,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
 
                             // clear data
                             changeRectF.setEmpty()
+                            maxRectF.setEmpty()
                             lastTouchPointF.set(-1f, -1f)
                             dragType = DragType.Image
                         }
