@@ -79,6 +79,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
     }
 
     override fun onTouch(view: View?, event: MotionEvent): Boolean {
+        if (!config.canTrimFrameDrag) return super.onTouch(view, event)
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 dragType = checkDragType(event, standardRectF)
@@ -332,6 +333,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             2 -> DragMode.Disabled
                             else -> DragMode.Default
                         }
+                        R.styleable.RectFView_canTrimFrameDrag -> config.canTrimFrameDrag = typedArray.getBoolean(index, false)
                     }
                 }
             } finally {

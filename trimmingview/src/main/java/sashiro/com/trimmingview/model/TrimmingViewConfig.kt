@@ -14,7 +14,8 @@ class TrimmingViewConfig private constructor(
         var showAnim: Boolean,
         var animDuration: Long,
         var dragMode: DragMode,
-        var maxScaleAs: Int
+        var maxScaleAs: Int,
+        var canTrimFrameDrag: Boolean
 ) {
     fun set(src: TrimmingViewConfig) {
         this.borderColor = src.borderColor
@@ -27,6 +28,7 @@ class TrimmingViewConfig private constructor(
         this.animDuration = src.animDuration
         this.dragMode = src.dragMode
         this.maxScaleAs = src.maxScaleAs
+        this.canTrimFrameDrag = src.canTrimFrameDrag
     }
 
 
@@ -41,6 +43,7 @@ class TrimmingViewConfig private constructor(
         private var animDuration: Long
         private var dragMode: DragMode
         private var maxScaleAs: Int
+        private var canTrimFrameDrag: Boolean
 
         init {
             borderColor = context.getCompColor(R.color.black)
@@ -53,6 +56,7 @@ class TrimmingViewConfig private constructor(
             animDuration = DEFAULT_ANIM_DURATION
             dragMode = DragMode.Default
             maxScaleAs = DEFAULT_MAX_SCALE_AS
+            canTrimFrameDrag = false
         }
 
         fun setBorderColor(borderColor: Int): Builder {
@@ -105,6 +109,11 @@ class TrimmingViewConfig private constructor(
             return this
         }
 
+        fun canTrimFrameDrag(canTrimFrameDrag: Boolean): Builder {
+            this.canTrimFrameDrag = canTrimFrameDrag
+            return this
+        }
+
         fun build(): TrimmingViewConfig =
                 TrimmingViewConfig(borderColor,
                         backgroundColor,
@@ -115,7 +124,8 @@ class TrimmingViewConfig private constructor(
                         showAnim,
                         animDuration,
                         dragMode,
-                        maxScaleAs)
+                        maxScaleAs,
+                        canTrimFrameDrag)
 
     }
 

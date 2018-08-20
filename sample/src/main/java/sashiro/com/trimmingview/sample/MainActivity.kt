@@ -17,6 +17,7 @@ class MainActivity : AppCompatActivity() {
                 .isBackgroundShow(true)
                 .setRatio(16 / 9f)
                 .showAnim(true)
+                .canTrimFrameDrag(true)
                 .setBorderWidth(baseContext.dp2px(2f).toFloat())
                 .setBorderColor(baseContext.getCompColor(R.color.colorAccent))
                 .build()
@@ -30,7 +31,7 @@ class MainActivity : AppCompatActivity() {
         goResultBtn.setOnClickListener {
             val result = trimmingView.getResult(2668, 2000)
             val intent = Intent(this, TrimmingResultActivity::class.java)
-                    .putExtra("rect",result.trimmingRect)
+                    .putExtra("rect", result.trimmingRect)
                     .putExtra("angle", trimmingView.getCurrentAngle())
             startActivity(intent)
         }
