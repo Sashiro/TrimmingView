@@ -18,8 +18,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
     override var config: TrimmingViewConfig by Delegates.observable(TrimmingViewConfig.Builder(context).build()) { _, _, newValue ->
         needCalImg = true
         applyColor()
-        calStandardRectF()
-        setPathByRectF(standardRectF)
+        setStandardRectF()
         requestLayout()
     }
 
@@ -37,10 +36,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
         if (needCalTriRectF) {
             if (centerPointF.isEmpty)
                 setCenter(widthF / 2, heightF / 2)
-
-            calStandardRectF()
-            setPathByRectF(standardRectF)
-
+            setStandardRectF()
             needCalTriRectF = false
         }
 
@@ -136,13 +132,31 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             invalidate()
                         }
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            config.ratio = changeRectF.width() / changeRectF.height()
-                            calStandardRectF()
-                            setPathByRectF(standardRectF)
+                            // get new lengthInfo
+                            triRecord.lengthInfo.set(getLengthInfoByChange(dragInfo, standardRectF, changeRectF))
+                            // save new ratio
+                            config.ratio = when (rectFHasRotated) {
+                                false -> changeRectF.width() / changeRectF.height()
+                                true -> changeRectF.height() / changeRectF.width()
+                            }
+                            // set new standardRectF
+                            setStandardRectF()
+
+                            //
+                            dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
+                            standardScale = calculateStandardScale()
+                            photoMatrix.apply {
+                                setScale(dragInfo.lastScale, dragInfo.lastScale)
+                                postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
+                                postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
+                            }
+                            imageMatrix = photoMatrix
+                            invalidate()
+
+                            // clear data
                             changeRectF.setEmpty()
                             lastTouchPointF.set(-1f, -1f)
                             dragType = DragType.Image
-                            invalidate()
                         }
                     }
                     return true
@@ -155,7 +169,12 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
     }
 
     // protected method
-    protected fun calStandardRectF() {
+    protected fun setStandardRectF() {
+        standardRectF.set(calStandardRectF())
+        setPathByRectF(standardRectF)
+    }
+
+    protected fun calStandardRectF(): RectF {
         // find standard line
         val isWidthStandard = when (rectFHasRotated) {
             false -> ((widthF - 2 * config.minPadding) / config.ratio) <= heightF
@@ -187,12 +206,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
             isWidthStandard -> top + otherLine
             else -> borderStandardLine + config.minPadding
         }
-        standardRectF.apply {
-            this.left = left
-            this.right = right
-            this.top = top
-            this.bottom = bottom
-        }
+        return RectF(left, top, right, bottom)
     }
 
     protected fun setPathByRectF(rectF: RectF) {

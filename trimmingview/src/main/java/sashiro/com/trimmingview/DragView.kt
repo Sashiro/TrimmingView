@@ -23,16 +23,16 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
 
     // private field
     private var maxScale = 1f
-    private var standardScale = 1f
     private var lastPointerCount = 0
     private val gestureDetector = ScaleGestureDetector(context, this)
     protected val photoMatrix = Matrix()
     private val matrixValues = FloatArray(9)
-    protected val lastTouchPointF = PointF()
 
     // protected field
+    protected val lastTouchPointF = PointF()
     protected var needCalImg = true
     protected val standardRectF = RectF()
+    protected var standardScale = 1f
     protected val centerPointF = PointF(-1f, -1f)
     protected val dragInfo = DragInfo()
     protected val triRecord = TriRecord()
@@ -200,37 +200,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
     private fun needApplyLastResult() =
             !triRecord.isEmpty() && !standardRectF.isEmpty
 
-    private fun calculateStandardScale() =
-            when {
-                !dragInfo.isEmpty() && dragInfo.hasRotated() ->
-                    when {
-                        drawableHF < standardRectF.width()
-                                && drawableWF > standardRectF.height() ->
-                            standardRectF.width() / drawableHF
-                        drawableHF > standardRectF.width()
-                                && drawableWF < standardRectF.height() ->
-                            standardRectF.height() / drawableWF
-                        (drawableHF > standardRectF.width() && drawableWF > standardRectF.height()) ||
-                                (drawableHF < standardRectF.width() && drawableWF < standardRectF.height()) ->
-                            Math.max(standardRectF.width() / drawableHF,
-                                    standardRectF.height() / drawableWF)
-                        else -> 1f
-                    }
-                else -> when {
-                    drawableWF < standardRectF.width()
-                            && drawableHF > standardRectF.height() ->
-                        standardRectF.width() / drawableWF
-                    drawableWF > standardRectF.width()
-                            && drawableHF < standardRectF.height() ->
-                        standardRectF.height() / drawableHF
-                    (drawableWF > standardRectF.width() && drawableHF > standardRectF.height()) ||
-                            (drawableWF < standardRectF.width() && drawableHF < standardRectF.height()) ->
-                        Math.max(standardRectF.width() / drawableWF,
-                                standardRectF.height() / drawableHF)
-                    else -> 1f
-                }
-            }
-
     private fun changeWithoutRotate(f: () -> Unit) {
         photoMatrix.postRotate(360f - dragInfo.lastAngle, centerPointF.x, centerPointF.y)
         f.invoke()
@@ -327,6 +296,54 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         }
     }
 
+    protected fun getLengthInfoByChange(oldDragInfo: DragInfo, oldRectF: RectF, changeRectF: RectF): LengthInfo {
+        val oldLengthInfo = getLengthInfo(oldDragInfo)
+        val dLeft = changeRectF.left - oldRectF.left
+        val dRight = changeRectF.right - oldRectF.right
+        val dTop = changeRectF.top - oldRectF.top
+        val dBottom = changeRectF.bottom - oldRectF.bottom
+        return when (oldDragInfo.lastAngle) {
+            180f, -180f -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.width() - dRight) / changeRectF.width()
+                val newRight = (oldLengthInfo.right * oldRectF.width() + dLeft) / changeRectF.width()
+                val newTop = (oldLengthInfo.top * oldRectF.height() - dBottom) / changeRectF.height()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.height() + dTop) / changeRectF.height()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+            90f, -270f -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.height() + dTop) / changeRectF.height()
+                val newRight = (oldLengthInfo.right * oldRectF.height() - dBottom) / changeRectF.height()
+                val newTop = (oldLengthInfo.top * oldRectF.width() - dRight) / changeRectF.width()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.width() + dLeft) / changeRectF.width()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+            270f, -90f -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.height() - dBottom) / changeRectF.height()
+                val newRight = (oldLengthInfo.right * oldRectF.height() + dTop) / changeRectF.height()
+                val newTop = (oldLengthInfo.top * oldRectF.width() + dLeft) / changeRectF.width()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.width() - dRight) / changeRectF.width()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+            else -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.width() + dLeft) / changeRectF.width()
+                val newRight = (oldLengthInfo.right * oldRectF.width() - dRight) / changeRectF.width()
+                val newTop = (oldLengthInfo.top * oldRectF.height() + dTop) / changeRectF.height()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.height() - dBottom) / changeRectF.height()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+        }.apply {
+            if (top < 0f)
+                top = 0f
+            if (left < 0f)
+                left = 0f
+            if (right < 0f)
+                right = 0f
+            if (bottom < 0f)
+                bottom = 0f
+        }
+
+    }
+
     protected fun transformLengthInfo(lengthInfo: LengthInfo, angle: Float): DragInfo {
         val sLeft = standardRectF.left
         val sTop = standardRectF.top
@@ -345,6 +362,38 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
                         angle)
         }
     }
+
+    protected fun calculateStandardScale() =
+            when {
+                !dragInfo.isEmpty() && dragInfo.hasRotated() ->
+                    when {
+                        drawableHF < standardRectF.width()
+                                && drawableWF > standardRectF.height() ->
+                            standardRectF.width() / drawableHF
+                        drawableHF > standardRectF.width()
+                                && drawableWF < standardRectF.height() ->
+                            standardRectF.height() / drawableWF
+                        (drawableHF > standardRectF.width() && drawableWF > standardRectF.height()) ||
+                                (drawableHF < standardRectF.width() && drawableWF < standardRectF.height()) ->
+                            Math.max(standardRectF.width() / drawableHF,
+                                    standardRectF.height() / drawableWF)
+                        else -> 1f
+                    }
+                else -> when {
+                    drawableWF < standardRectF.width()
+                            && drawableHF > standardRectF.height() ->
+                        standardRectF.width() / drawableWF
+                    drawableWF > standardRectF.width()
+                            && drawableHF < standardRectF.height() ->
+                        standardRectF.height() / drawableHF
+                    (drawableWF > standardRectF.width() && drawableHF > standardRectF.height()) ||
+                            (drawableWF < standardRectF.width() && drawableHF < standardRectF.height()) ->
+                        Math.max(standardRectF.width() / drawableWF,
+                                standardRectF.height() / drawableHF)
+                    else -> 1f
+                }
+            }
+
 
     // override method
     @CallSuper

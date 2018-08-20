@@ -31,7 +31,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(co
 
         // save old standardRectF
         val oldRectF = RectF(standardRectF)
-        calStandardRectF()
+        standardRectF.set(calStandardRectF())
 
         // save old dragInfo
         val oldDragInfo = DragInfo(dragInfo)
@@ -188,8 +188,7 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(co
         val lengthInfo = LengthInfo(left, top, right, bottom)
         triRecord.set(TriRecord(lengthInfo, trimmingResult.angle))
         rectFHasRotated = trimmingResult.angle % 180 != 0f
-        calStandardRectF()
-        setPathByRectF(standardRectF)
+        setStandardRectF()
         requestLayout()
     }
 
