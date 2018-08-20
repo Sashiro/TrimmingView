@@ -113,8 +113,14 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                     }
 
                     // calculate minRectF
-                    val maxDx = standardRectF.width() - drawableWF * dragInfo.lastScale / config.maxScaleAs
-                    val maxDy = standardRectF.height() - drawableHF * dragInfo.lastScale / config.maxScaleAs
+                    val maxDx = when (dragInfo.lastAngle % 180 == 0f) {
+                        true -> standardRectF.width() - drawableWF * dragInfo.lastScale / config.maxScaleAs
+                        false -> standardRectF.width() - drawableHF * dragInfo.lastScale / config.maxScaleAs
+                    }
+                    val maxDy = when (dragInfo.lastAngle % 180 == 0f) {
+                        true -> standardRectF.height() - drawableHF * dragInfo.lastScale / config.maxScaleAs
+                        false -> standardRectF.height() - drawableWF * dragInfo.lastScale / config.maxScaleAs
+                    }
                     when (dragType) {
                         DragType.LTPoint ->
                             minRectF.set(standardRectF.left + maxDx,
