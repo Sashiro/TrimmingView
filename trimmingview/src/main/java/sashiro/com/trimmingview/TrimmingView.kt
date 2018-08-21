@@ -37,7 +37,6 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(co
 
         // change standardScale
         standardScale = calculateStandardScale()
-        maxScale = standardScale * config.maxScaleAs
 
         // startAnim
         if (config.showAnim)

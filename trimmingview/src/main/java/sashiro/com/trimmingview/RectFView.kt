@@ -115,14 +115,8 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                     }
 
                     // calculate minRectF
-                    val maxDx = when (dragInfo.lastAngle % 180 == 0f) {
-                        true -> standardRectF.width() - drawableWF * dragInfo.lastScale / config.maxScaleAs
-                        false -> standardRectF.width() - drawableHF * dragInfo.lastScale / config.maxScaleAs
-                    }
-                    val maxDy = when (dragInfo.lastAngle % 180 == 0f) {
-                        true -> standardRectF.height() - drawableHF * dragInfo.lastScale / config.maxScaleAs
-                        false -> standardRectF.height() - drawableWF * dragInfo.lastScale / config.maxScaleAs
-                    }
+                    val maxDx = standardRectF.width() - (widthF - 2 * config.minPadding) * dragInfo.lastScale / config.maxScale
+                    val maxDy = standardRectF.height() - (widthF - 2 * config.minPadding) * dragInfo.lastScale / config.maxScale
                     when (dragType) {
                         DragType.LTPoint ->
                             minRectF.set(standardRectF.left + maxDx,
@@ -156,38 +150,34 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             val dy = event.y - lastTouchPointF.y
                             val currentSquarePoint = SquarePoint.transForm(changeRectF)
                             when (dragType) {
-                                DragType.LTPoint -> {
-                                    currentSquarePoint.ltPoint.apply {
-                                        x += dx
-                                        y += dy
+                                DragType.LTPoint ->
+                                    currentSquarePoint.apply {
+                                        ltPoint.x += dx
+                                        ltPoint.y += dy
+                                        lbPoint.x += dx
+                                        rtPoint.y += dy
                                     }
-                                    currentSquarePoint.lbPoint.x += dx
-                                    currentSquarePoint.rtPoint.y += dy
-                                }
-                                DragType.RTPoint -> {
-                                    currentSquarePoint.rtPoint.apply {
-                                        x += dx
-                                        y += dy
+                                DragType.RTPoint ->
+                                    currentSquarePoint.apply {
+                                        rtPoint.x += dx
+                                        rtPoint.y += dy
+                                        rbPoint.x += dx
+                                        ltPoint.y += dy
                                     }
-                                    currentSquarePoint.rbPoint.x += dx
-                                    currentSquarePoint.ltPoint.y += dy
-                                }
-                                DragType.RBPoint -> {
-                                    currentSquarePoint.rbPoint.apply {
-                                        x += dx
-                                        y += dy
+                                DragType.RBPoint ->
+                                    currentSquarePoint.apply {
+                                        rbPoint.x += dx
+                                        rbPoint.y += dy
+                                        rtPoint.x += dx
+                                        lbPoint.y += dy
                                     }
-                                    currentSquarePoint.rtPoint.x += dx
-                                    currentSquarePoint.lbPoint.y += dy
-                                }
-                                DragType.LBPoint -> {
-                                    currentSquarePoint.lbPoint.apply {
-                                        x += dx
-                                        y += dy
+                                DragType.LBPoint ->
+                                    currentSquarePoint.apply {
+                                        lbPoint.x += dx
+                                        lbPoint.y += dy
+                                        ltPoint.x += dx
+                                        rbPoint.y += dy
                                     }
-                                    currentSquarePoint.ltPoint.x += dx
-                                    currentSquarePoint.rbPoint.y += dy
-                                }
                             }
                             // check max
                             if (currentSquarePoint.ltPoint.x < maxRectF.left ||
@@ -249,8 +239,6 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             //
                             dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
                             standardScale = calculateStandardScale()
-                            maxScale = standardScale * config.maxScaleAs
-
 
                             if (config.showAnim) {
                                 changeTrimFrameAnim(oldDragInfo, dragInfo, RectF(changeRectF), standardRectF)

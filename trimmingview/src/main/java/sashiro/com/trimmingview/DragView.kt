@@ -22,7 +22,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         View.OnTouchListener {
 
     // private field
-    protected var maxScale = 1f
     private var lastPointerCount = 0
     private val gestureDetector = ScaleGestureDetector(context, this)
     protected val photoMatrix = Matrix()
@@ -68,7 +67,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         standardScale = calculateStandardScale()
 
         // init photoMatrix
-        maxScale = standardScale * config.maxScaleAs
         when (dragInfo.isEmpty()) {
             true -> {
                 // dx dy
@@ -118,12 +116,14 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
             changeWithoutRotate {
                 photoMatrix.postScale(intentScale, intentScale, detector.focusX, detector.focusY)
                 val currentScale = matrixValues.getScale(photoMatrix)
-                if (currentScale >= maxScale)
-                    photoMatrix.postScale(maxScale / currentScale, maxScale / currentScale, detector.focusX, detector.focusY)
+                if (currentScale >= config.maxScale)
+                    photoMatrix.postScale(config.maxScale / currentScale,
+                            config.maxScale / currentScale, detector.focusX, detector.focusY)
 
                 if (config.dragMode == DragMode.Default) {
                     if (currentScale <= standardScale)
-                        photoMatrix.postScale(standardScale / currentScale, standardScale / currentScale, detector.focusX, detector.focusY)
+                        photoMatrix.postScale(standardScale / currentScale,
+                                standardScale / currentScale, detector.focusX, detector.focusY)
                     transCorrect()
                 }
 
@@ -168,7 +168,7 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
                 changeWithoutRotate {
                     val currentScale = matrixValues.getScale(photoMatrix)
                     when {
-                        currentScale > maxScale ->
+                        currentScale > config.maxScale ->
                             photoMatrix.apply {
                                 setScale(dragInfo.lastScale, dragInfo.lastScale)
                                 postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
