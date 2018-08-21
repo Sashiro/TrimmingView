@@ -154,7 +154,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                         MotionEvent.ACTION_MOVE -> {
                             val dx = event.x - lastTouchPointF.x
                             val dy = event.y - lastTouchPointF.y
-                            val currentSquarePoint = SquarePoint.transForm(standardRectF)
+                            val currentSquarePoint = SquarePoint.transForm(changeRectF)
                             when (dragType) {
                                 DragType.LTPoint -> {
                                     currentSquarePoint.ltPoint.apply {
@@ -229,6 +229,8 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             setPathBySquarePoint(currentSquarePoint)
                             changeRectF.set(currentSquarePoint.toRectF())
                             invalidate()
+
+                            lastTouchPointF.set(event.x, event.y)
                         }
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                             // save oldDragInfo

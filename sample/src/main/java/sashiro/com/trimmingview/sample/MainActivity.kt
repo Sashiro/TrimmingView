@@ -16,6 +16,7 @@ class MainActivity : AppCompatActivity() {
         trimmingView.config = TrimmingViewConfig.Builder(baseContext)
                 .isBackgroundShow(true)
                 .setRatio(16 / 9f)
+                .maxScaleAs(10)
                 .showAnim(true)
                 .canTrimFrameDrag(true)
                 .setBorderWidth(baseContext.dp2px(2f).toFloat())
