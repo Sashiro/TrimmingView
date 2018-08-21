@@ -33,6 +33,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
     private val changeRectF: RectF = RectF()
     private val maxRectF: RectF = RectF()
     private val minRectF: RectF = RectF()
+    private val realMaxRectF: RectF = RectF()
 
     protected var needCalTriRectF = false
 
@@ -41,6 +42,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
             if (centerPointF.isEmpty)
                 setCenter(widthF / 2, heightF / 2)
             setStandardRectF()
+            realMaxRectF.set(config.minPadding, config.minPadding, widthF - config.minPadding, heightF - config.minPadding)
             needCalTriRectF = false
         }
 
@@ -164,13 +166,44 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                         rbPoint.x += dx
                                         ltPoint.y += dy
                                     }
-                                DragType.RBPoint ->
+                                DragType.RBPoint -> {
                                     currentSquarePoint.apply {
                                         rbPoint.x += dx
                                         rbPoint.y += dy
                                         rtPoint.x += dx
                                         lbPoint.y += dy
                                     }
+                                    if (event.x < realMaxRectF.right && maxRectF.right > realMaxRectF.right && dx > 0) {
+                                        currentSquarePoint.apply {
+                                            lbPoint.x -= dx
+                                            ltPoint.x -= dx
+                                        }
+                                        maxRectF.left -= dx
+                                        maxRectF.right -= dx
+                                        photoMatrix.postTranslate(-dx, 0f)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransY += dx
+                                            180f, -180f -> dragInfo.lastTransX += dx
+                                            -90f, 270f -> dragInfo.lastTransY -= dx
+                                            else -> dragInfo.lastTransX -= dx
+                                        }
+                                    }
+                                    if (event.y < realMaxRectF.bottom && maxRectF.bottom > realMaxRectF.bottom && dy > 0) {
+                                        currentSquarePoint.apply {
+                                            ltPoint.y -= dy
+                                            rtPoint.y -= dy
+                                        }
+                                        maxRectF.top -= dy
+                                        maxRectF.bottom -= dy
+                                        photoMatrix.postTranslate(0f, -dy)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransX -= dy
+                                            180f, -180f -> dragInfo.lastTransY += dy
+                                            -90f, 270f -> dragInfo.lastTransX += dy
+                                            else -> dragInfo.lastTransY -= dy
+                                        }
+                                    }
+                                }
                                 DragType.LBPoint ->
                                     currentSquarePoint.apply {
                                         lbPoint.x += dx
@@ -219,6 +252,7 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             setPathBySquarePoint(currentSquarePoint)
                             changeRectF.set(currentSquarePoint.toRectF())
                             invalidate()
+                            imageMatrix = photoMatrix
 
                             lastTouchPointF.set(event.x, event.y)
                         }
