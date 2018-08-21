@@ -116,17 +116,26 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
             changeWithoutRotate {
                 photoMatrix.postScale(intentScale, intentScale, detector.focusX, detector.focusY)
                 val currentScale = matrixValues.getScale(photoMatrix)
-                if (currentScale >= config.maxScale)
-                    photoMatrix.postScale(config.maxScale / currentScale,
-                            config.maxScale / currentScale, detector.focusX, detector.focusY)
+                if ((widthF - config.minPadding * 2) * currentScale / standardRectF.width() > config.maxScale) {
+                    photoMatrix.postScale(config.maxScale * standardRectF.width() / (widthF - config.minPadding * 2) / currentScale,
+                            config.maxScale * standardRectF.width() / (widthF - config.minPadding * 2) / currentScale,
+                            detector.focusX, detector.focusY)
+                } else if ((widthF - config.minPadding * 2) * currentScale / standardRectF.height() > config.maxScale) {
+                    photoMatrix.postScale(config.maxScale * standardRectF.height() / (widthF - config.minPadding * 2) / currentScale,
+                            config.maxScale * standardRectF.height() / (widthF - config.minPadding * 2) / currentScale,
+                            detector.focusX, detector.focusY)
+                } else {
+                    if (currentScale >= config.maxScale)
+                        photoMatrix.postScale(config.maxScale / currentScale,
+                                config.maxScale / currentScale, detector.focusX, detector.focusY)
 
-                if (config.dragMode == DragMode.Default) {
-                    if (currentScale <= standardScale)
-                        photoMatrix.postScale(standardScale / currentScale,
-                                standardScale / currentScale, detector.focusX, detector.focusY)
-                    transCorrect()
+                    if (config.dragMode == DragMode.Default) {
+                        if (currentScale <= standardScale)
+                            photoMatrix.postScale(standardScale / currentScale,
+                                    standardScale / currentScale, detector.focusX, detector.focusY)
+                        transCorrect()
+                    }
                 }
-
             }
             imageMatrix = photoMatrix
         }
