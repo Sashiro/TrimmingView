@@ -152,20 +152,82 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                             val dy = event.y - lastTouchPointF.y
                             val currentSquarePoint = SquarePoint.transForm(changeRectF)
                             when (dragType) {
-                                DragType.LTPoint ->
+                                DragType.LTPoint -> {
                                     currentSquarePoint.apply {
                                         ltPoint.x += dx
                                         ltPoint.y += dy
                                         lbPoint.x += dx
                                         rtPoint.y += dy
                                     }
-                                DragType.RTPoint ->
+                                    if (event.x > realMaxRectF.left && maxRectF.left < realMaxRectF.right && dx < 0) {
+                                        currentSquarePoint.apply {
+                                            rbPoint.x -= dx
+                                            rtPoint.x -= dx
+                                        }
+                                        maxRectF.left -= dx
+                                        maxRectF.right -= dx
+                                        photoMatrix.postTranslate(-dx, 0f)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransY += dx
+                                            180f, -180f -> dragInfo.lastTransX += dx
+                                            -90f, 270f -> dragInfo.lastTransY -= dx
+                                            else -> dragInfo.lastTransX -= dx
+                                        }
+                                    }
+                                    if (event.y > realMaxRectF.top && maxRectF.top < realMaxRectF.top && dy < 0) {
+                                        currentSquarePoint.apply {
+                                            lbPoint.y -= dy
+                                            rbPoint.y -= dy
+                                        }
+                                        maxRectF.top -= dy
+                                        maxRectF.bottom -= dy
+                                        photoMatrix.postTranslate(0f, -dy)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransX -= dy
+                                            180f, -180f -> dragInfo.lastTransY += dy
+                                            -90f, 270f -> dragInfo.lastTransX += dy
+                                            else -> dragInfo.lastTransY -= dy
+                                        }
+                                    }
+                                }
+                                DragType.RTPoint -> {
                                     currentSquarePoint.apply {
                                         rtPoint.x += dx
                                         rtPoint.y += dy
                                         rbPoint.x += dx
                                         ltPoint.y += dy
                                     }
+                                    if (event.x < realMaxRectF.right && maxRectF.right > realMaxRectF.right && dx > 0) {
+                                        currentSquarePoint.apply {
+                                            lbPoint.x -= dx
+                                            ltPoint.x -= dx
+                                        }
+                                        maxRectF.left -= dx
+                                        maxRectF.right -= dx
+                                        photoMatrix.postTranslate(-dx, 0f)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransY += dx
+                                            180f, -180f -> dragInfo.lastTransX += dx
+                                            -90f, 270f -> dragInfo.lastTransY -= dx
+                                            else -> dragInfo.lastTransX -= dx
+                                        }
+                                    }
+                                    if (event.y > realMaxRectF.top && maxRectF.top < realMaxRectF.top && dy < 0) {
+                                        currentSquarePoint.apply {
+                                            lbPoint.y -= dy
+                                            rbPoint.y -= dy
+                                        }
+                                        maxRectF.top -= dy
+                                        maxRectF.bottom -= dy
+                                        photoMatrix.postTranslate(0f, -dy)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransX -= dy
+                                            180f, -180f -> dragInfo.lastTransY += dy
+                                            -90f, 270f -> dragInfo.lastTransX += dy
+                                            else -> dragInfo.lastTransY -= dy
+                                        }
+                                    }
+                                }
                                 DragType.RBPoint -> {
                                     currentSquarePoint.apply {
                                         rbPoint.x += dx
@@ -204,13 +266,44 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                         }
                                     }
                                 }
-                                DragType.LBPoint ->
+                                DragType.LBPoint -> {
                                     currentSquarePoint.apply {
                                         lbPoint.x += dx
                                         lbPoint.y += dy
                                         ltPoint.x += dx
                                         rbPoint.y += dy
                                     }
+                                    if (event.x > realMaxRectF.left && maxRectF.left < realMaxRectF.right && dx < 0) {
+                                        currentSquarePoint.apply {
+                                            rbPoint.x -= dx
+                                            rtPoint.x -= dx
+                                        }
+                                        maxRectF.left -= dx
+                                        maxRectF.right -= dx
+                                        photoMatrix.postTranslate(-dx, 0f)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransY += dx
+                                            180f, -180f -> dragInfo.lastTransX += dx
+                                            -90f, 270f -> dragInfo.lastTransY -= dx
+                                            else -> dragInfo.lastTransX -= dx
+                                        }
+                                    }
+                                    if (event.y < realMaxRectF.bottom && maxRectF.bottom > realMaxRectF.bottom && dy > 0) {
+                                        currentSquarePoint.apply {
+                                            ltPoint.y -= dy
+                                            rtPoint.y -= dy
+                                        }
+                                        maxRectF.top -= dy
+                                        maxRectF.bottom -= dy
+                                        photoMatrix.postTranslate(0f, -dy)
+                                        when (dragInfo.lastAngle) {
+                                            90f, -270f -> dragInfo.lastTransX -= dy
+                                            180f, -180f -> dragInfo.lastTransY += dy
+                                            -90f, 270f -> dragInfo.lastTransX += dy
+                                            else -> dragInfo.lastTransY -= dy
+                                        }
+                                    }
+                                }
                             }
                             // check max
                             if (currentSquarePoint.ltPoint.x < maxRectF.left ||
