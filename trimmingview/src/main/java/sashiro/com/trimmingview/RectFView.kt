@@ -306,41 +306,88 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                 }
                             }
                             // check max
-                            if (currentSquarePoint.ltPoint.x < maxRectF.left ||
-                                    currentSquarePoint.lbPoint.x < maxRectF.left) {
-                                currentSquarePoint.ltPoint.x = maxRectF.left
-                                currentSquarePoint.lbPoint.x = maxRectF.left
-                            } else if (currentSquarePoint.ltPoint.x > minRectF.left ||
-                                    currentSquarePoint.lbPoint.x > minRectF.left) {
-                                currentSquarePoint.ltPoint.x = minRectF.left
-                                currentSquarePoint.lbPoint.x = minRectF.left
+                            when {
+                                currentSquarePoint.ltPoint.x < maxRectF.left ||
+                                        currentSquarePoint.lbPoint.x < maxRectF.left ->
+                                    currentSquarePoint.apply {
+                                        ltPoint.x = maxRectF.left
+                                        lbPoint.x = maxRectF.left
+                                    }
+                                currentSquarePoint.ltPoint.x < realMaxRectF.left ||
+                                        currentSquarePoint.lbPoint.x < realMaxRectF.left ->
+                                    currentSquarePoint.apply {
+                                        ltPoint.x = realMaxRectF.left
+                                        lbPoint.x = realMaxRectF.left
+                                    }
+                                currentSquarePoint.ltPoint.x > minRectF.left ||
+                                        currentSquarePoint.lbPoint.x > minRectF.left ->
+                                    currentSquarePoint.apply {
+                                        ltPoint.x = minRectF.left
+                                        lbPoint.x = minRectF.left
+                                    }
                             }
-                            if (currentSquarePoint.ltPoint.y < maxRectF.top ||
-                                    currentSquarePoint.rtPoint.y < maxRectF.top) {
-                                currentSquarePoint.ltPoint.y = maxRectF.top
-                                currentSquarePoint.rtPoint.y = maxRectF.top
-                            } else if (currentSquarePoint.ltPoint.y > minRectF.top ||
-                                    currentSquarePoint.rtPoint.y > minRectF.top) {
-                                currentSquarePoint.ltPoint.y = minRectF.top
-                                currentSquarePoint.rtPoint.y = minRectF.top
+
+                            when {
+                                currentSquarePoint.ltPoint.y < maxRectF.top ||
+                                        currentSquarePoint.rtPoint.y < maxRectF.top ->
+                                    currentSquarePoint.apply {
+                                        ltPoint.y = maxRectF.top
+                                        rtPoint.y = maxRectF.top
+                                    }
+                                currentSquarePoint.ltPoint.y < realMaxRectF.top ||
+                                        currentSquarePoint.rtPoint.y < realMaxRectF.top ->
+                                    currentSquarePoint.apply {
+                                        ltPoint.y = realMaxRectF.top
+                                        rtPoint.y = realMaxRectF.top
+                                    }
+                                currentSquarePoint.ltPoint.y > minRectF.top ||
+                                        currentSquarePoint.rtPoint.y > minRectF.top ->
+                                    currentSquarePoint.apply {
+                                        currentSquarePoint.ltPoint.y = minRectF.top
+                                        currentSquarePoint.rtPoint.y = minRectF.top
+                                    }
                             }
-                            if (currentSquarePoint.rtPoint.x > maxRectF.right ||
-                                    currentSquarePoint.rbPoint.x > maxRectF.right) {
-                                currentSquarePoint.rtPoint.x = maxRectF.right
-                                currentSquarePoint.rbPoint.x = maxRectF.right
-                            } else if (currentSquarePoint.rtPoint.x < minRectF.right ||
-                                    currentSquarePoint.rbPoint.x < minRectF.right) {
-                                currentSquarePoint.rtPoint.x = minRectF.right
-                                currentSquarePoint.rbPoint.x = minRectF.right
+
+                            when {
+                                currentSquarePoint.rtPoint.x > maxRectF.right ||
+                                        currentSquarePoint.rbPoint.x > maxRectF.right ->
+                                    currentSquarePoint.apply {
+                                        rtPoint.x = maxRectF.right
+                                        rbPoint.x = maxRectF.right
+                                    }
+                                currentSquarePoint.rtPoint.x > realMaxRectF.right ||
+                                        currentSquarePoint.rbPoint.x > realMaxRectF.right ->
+                                    currentSquarePoint.apply {
+                                        rtPoint.x = realMaxRectF.right
+                                        rbPoint.x = realMaxRectF.right
+                                    }
+                                currentSquarePoint.rtPoint.x < minRectF.right ||
+                                        currentSquarePoint.rbPoint.x < minRectF.right ->
+                                    currentSquarePoint.apply {
+                                        rtPoint.x = minRectF.right
+                                        rbPoint.x = minRectF.right
+                                    }
                             }
-                            if (currentSquarePoint.lbPoint.y > maxRectF.bottom ||
-                                    currentSquarePoint.rbPoint.y > maxRectF.bottom) {
-                                currentSquarePoint.lbPoint.y = maxRectF.bottom
-                                currentSquarePoint.rbPoint.y = maxRectF.bottom
-                            } else if (currentSquarePoint.lbPoint.y < minRectF.bottom ||
-                                    currentSquarePoint.rbPoint.y < minRectF.bottom) {
-                                currentSquarePoint.lbPoint.y = minRectF.bottom
-                                currentSquarePoint.rbPoint.y = minRectF.bottom
+
+                            when {
+                                currentSquarePoint.lbPoint.y > maxRectF.bottom ||
+                                        currentSquarePoint.rbPoint.y > maxRectF.bottom ->
+                                    currentSquarePoint.apply {
+                                        lbPoint.y = maxRectF.bottom
+                                        rbPoint.y = maxRectF.bottom
+                                    }
+                                currentSquarePoint.lbPoint.y > realMaxRectF.bottom ||
+                                        currentSquarePoint.rbPoint.y > realMaxRectF.bottom ->
+                                    currentSquarePoint.apply {
+                                        lbPoint.y = realMaxRectF.bottom
+                                        rbPoint.y = realMaxRectF.bottom
+                                    }
+                                currentSquarePoint.lbPoint.y < minRectF.bottom ||
+                                        currentSquarePoint.rbPoint.y < minRectF.bottom ->
+                                    currentSquarePoint.apply {
+                                        lbPoint.y = minRectF.bottom
+                                        rbPoint.y = minRectF.bottom
+                                    }
                             }
                             setPathBySquarePoint(currentSquarePoint)
                             changeRectF.set(currentSquarePoint.toRectF())
