@@ -159,7 +159,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                         lbPoint.x += dx
                                         rtPoint.y += dy
                                     }
-                                    if (event.x > realMaxRectF.left && maxRectF.left < realMaxRectF.right && dx < 0) {
+                                    if (event.x > realMaxRectF.left
+                                            && maxRectF.left < realMaxRectF.left
+                                            && changeRectF.right < realMaxRectF.right
+                                            && dx < 0) {
                                         currentSquarePoint.apply {
                                             rbPoint.x -= dx
                                             rtPoint.x -= dx
@@ -174,7 +177,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                             else -> dragInfo.lastTransX -= dx
                                         }
                                     }
-                                    if (event.y > realMaxRectF.top && maxRectF.top < realMaxRectF.top && dy < 0) {
+                                    if (event.y > realMaxRectF.top
+                                            && maxRectF.top < realMaxRectF.top
+                                            && changeRectF.bottom < realMaxRectF.bottom
+                                            && dy < 0) {
                                         currentSquarePoint.apply {
                                             lbPoint.y -= dy
                                             rbPoint.y -= dy
@@ -197,7 +203,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                         rbPoint.x += dx
                                         ltPoint.y += dy
                                     }
-                                    if (event.x < realMaxRectF.right && maxRectF.right > realMaxRectF.right && dx > 0) {
+                                    if (event.x < realMaxRectF.right
+                                            && maxRectF.right > realMaxRectF.right
+                                            && changeRectF.left > realMaxRectF.left
+                                            && dx > 0) {
                                         currentSquarePoint.apply {
                                             lbPoint.x -= dx
                                             ltPoint.x -= dx
@@ -212,7 +221,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                             else -> dragInfo.lastTransX -= dx
                                         }
                                     }
-                                    if (event.y > realMaxRectF.top && maxRectF.top < realMaxRectF.top && dy < 0) {
+                                    if (event.y > realMaxRectF.top
+                                            && maxRectF.top < realMaxRectF.top
+                                            && changeRectF.bottom < realMaxRectF.bottom
+                                            && dy < 0) {
                                         currentSquarePoint.apply {
                                             lbPoint.y -= dy
                                             rbPoint.y -= dy
@@ -235,7 +247,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                         rtPoint.x += dx
                                         lbPoint.y += dy
                                     }
-                                    if (event.x < realMaxRectF.right && maxRectF.right > realMaxRectF.right && dx > 0) {
+                                    if (event.x < realMaxRectF.right
+                                            && maxRectF.right > realMaxRectF.right
+                                            && changeRectF.left > realMaxRectF.left
+                                            && dx > 0) {
                                         currentSquarePoint.apply {
                                             lbPoint.x -= dx
                                             ltPoint.x -= dx
@@ -250,7 +265,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                             else -> dragInfo.lastTransX -= dx
                                         }
                                     }
-                                    if (event.y < realMaxRectF.bottom && maxRectF.bottom > realMaxRectF.bottom && dy > 0) {
+                                    if (event.y < realMaxRectF.bottom
+                                            && maxRectF.bottom > realMaxRectF.bottom
+                                            && changeRectF.top > realMaxRectF.top
+                                            && dy > 0) {
                                         currentSquarePoint.apply {
                                             ltPoint.y -= dy
                                             rtPoint.y -= dy
@@ -273,7 +291,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                         ltPoint.x += dx
                                         rbPoint.y += dy
                                     }
-                                    if (event.x > realMaxRectF.left && maxRectF.left < realMaxRectF.right && dx < 0) {
+                                    if (event.x > realMaxRectF.left
+                                            && maxRectF.left < realMaxRectF.left
+                                            && changeRectF.right < realMaxRectF.right
+                                            && dx < 0) {
                                         currentSquarePoint.apply {
                                             rbPoint.x -= dx
                                             rtPoint.x -= dx
@@ -288,7 +309,10 @@ abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragVi
                                             else -> dragInfo.lastTransX -= dx
                                         }
                                     }
-                                    if (event.y < realMaxRectF.bottom && maxRectF.bottom > realMaxRectF.bottom && dy > 0) {
+                                    if (event.y < realMaxRectF.bottom
+                                            && maxRectF.bottom > realMaxRectF.bottom
+                                            && changeRectF.top > realMaxRectF.top
+                                            && dy > 0) {
                                         currentSquarePoint.apply {
                                             ltPoint.y -= dy
                                             rtPoint.y -= dy
