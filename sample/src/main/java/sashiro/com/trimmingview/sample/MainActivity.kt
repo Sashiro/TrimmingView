@@ -32,8 +32,7 @@ class MainActivity : AppCompatActivity() {
         goResultBtn.setOnClickListener {
             val result = trimmingView.getResult(2668, 2000)
             val intent = Intent(this, TrimmingResultActivity::class.java)
-                    .putExtra("rect", result.trimmingRect)
-                    .putExtra("angle", trimmingView.getCurrentAngle())
+                    .putExtra("result", result)
             startActivity(intent)
         }
         resetBtn.setOnClickListener {

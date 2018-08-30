@@ -172,10 +172,12 @@ class TrimmingView(context: Context, attributeSet: AttributeSet?) : RectFView(co
                 else -> it
             }
         }
-        return TrimmingResult(Rect(left, top, right, bottom), getCurrentAngle())
+        return TrimmingResult(Rect(left, top, right, bottom), getCurrentAngle(), config.maxScale)
     }
 
     fun setResult(imgWidth: Int, imgHeight: Int, trimmingResult: TrimmingResult) {
+        config.maxScale = trimmingResult.maxScale
+
         triRecord.clear()
         dragInfo.clear()
         config.ratio = trimmingResult.trimmingRect.width() / trimmingResult.trimmingRect.height().toFloat()
