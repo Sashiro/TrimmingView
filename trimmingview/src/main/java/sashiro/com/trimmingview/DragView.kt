@@ -359,16 +359,26 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         val sWidth = standardRectF.width()
         val sHeight = standardRectF.height()
         return when (angle % 180 == 0f) {
-            true ->
+            true -> {
+                val lastScale = ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF
                 DragInfo(sLeft - lengthInfo.left * sWidth,
                         sTop - lengthInfo.top * sHeight,
-                        ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF,
+                        when (lastScale > config.maxScale) {
+                            true -> config.maxScale
+                            false -> lastScale
+                        },
                         angle)
-            false ->
+            }
+            false -> {
+                val lastScale = ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF
                 DragInfo((widthF - sHeight) / 2 - lengthInfo.left * sHeight,
                         (heightF - sWidth) / 2 - lengthInfo.top * sWidth,
-                        ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
+                        when (lastScale > config.maxScale) {
+                            true -> config.maxScale
+                            false -> lastScale
+                        },
                         angle)
+            }
         }
     }
 

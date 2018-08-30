@@ -10,6 +10,7 @@ class TrimmingResultActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_trimming_result)
+        trimmingResultView.config.maxScale = 10f
         intent?.let {
             val rect = it.getParcelableExtra<Rect>("rect")
             val angle = it.getFloatExtra("angle", 0f)
