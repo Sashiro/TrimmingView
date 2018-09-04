@@ -13,7 +13,7 @@ import sashiro.com.trimmingview.model.DragMode
 import sashiro.com.trimmingview.model.TrimmingViewConfig
 import kotlin.properties.Delegates
 
-/** @hide */
+/** {@hide} */
 abstract class RectFView(context: Context, attributeSet: AttributeSet?) : DragView(context, attributeSet) {
     constructor(context: Context) : this(context, null)
 
