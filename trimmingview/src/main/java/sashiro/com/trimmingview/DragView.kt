@@ -1,6 +1,5 @@
 package sashiro.com.trimmingview
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.PointF
@@ -13,7 +12,6 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewTreeObserver
-import android.view.animation.LinearInterpolator
 import sashiro.com.trimmingview.ext.*
 import sashiro.com.trimmingview.model.DragMode
 import sashiro.com.trimmingview.model.TrimmingViewConfig
@@ -24,17 +22,16 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         View.OnTouchListener {
 
     // private field
-    private var maxScale = 1f
-    private var standardScale = 1f
     private var lastPointerCount = 0
     private val gestureDetector = ScaleGestureDetector(context, this)
-    private val photoMatrix = Matrix()
+    protected val photoMatrix = Matrix()
     private val matrixValues = FloatArray(9)
-    private val lastTouchPointF = PointF()
 
     // protected field
+    protected val lastTouchPointF = PointF()
     protected var needCalImg = true
     protected val standardRectF = RectF()
+    protected var standardScale = 1f
     protected val centerPointF = PointF(-1f, -1f)
     protected val dragInfo = DragInfo()
     protected val triRecord = TriRecord()
@@ -42,10 +39,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
 
     // public field
     abstract var config: TrimmingViewConfig
-//    protected var maxScaleAs = DEFAULT_MAX_SCALE_AS
-//    protected var dragMode: DragMode = DragMode.Default
-//    protected var showAnim: Boolean = false
-//    protected var animDuration: Long = DEFAULT_ANIM_DURATION
 
     // onGlobalLayout
     @CallSuper
@@ -74,7 +67,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         standardScale = calculateStandardScale()
 
         // init photoMatrix
-        maxScale = standardScale * config.maxScaleAs
         when (dragInfo.isEmpty()) {
             true -> {
                 // dx dy
@@ -124,15 +116,26 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
             changeWithoutRotate {
                 photoMatrix.postScale(intentScale, intentScale, detector.focusX, detector.focusY)
                 val currentScale = matrixValues.getScale(photoMatrix)
-                if (currentScale >= maxScale)
-                    photoMatrix.postScale(maxScale / currentScale, maxScale / currentScale, detector.focusX, detector.focusY)
+                if ((widthF - config.minPadding * 2) * currentScale / standardRectF.width() > config.maxScale) {
+                    photoMatrix.postScale(config.maxScale * standardRectF.width() / (widthF - config.minPadding * 2) / currentScale,
+                            config.maxScale * standardRectF.width() / (widthF - config.minPadding * 2) / currentScale,
+                            detector.focusX, detector.focusY)
+                } else if ((widthF - config.minPadding * 2) * currentScale / standardRectF.height() > config.maxScale) {
+                    photoMatrix.postScale(config.maxScale * standardRectF.height() / (widthF - config.minPadding * 2) / currentScale,
+                            config.maxScale * standardRectF.height() / (widthF - config.minPadding * 2) / currentScale,
+                            detector.focusX, detector.focusY)
+                } else {
+                    if (currentScale >= config.maxScale)
+                        photoMatrix.postScale(config.maxScale / currentScale,
+                                config.maxScale / currentScale, detector.focusX, detector.focusY)
 
-                if (config.dragMode == DragMode.Default) {
-                    if (currentScale <= standardScale)
-                        photoMatrix.postScale(standardScale / currentScale, standardScale / currentScale, detector.focusX, detector.focusY)
-                    transCorrect()
+                    if (config.dragMode == DragMode.Default) {
+                        if (currentScale <= standardScale)
+                            photoMatrix.postScale(standardScale / currentScale,
+                                    standardScale / currentScale, detector.focusX, detector.focusY)
+                        transCorrect()
+                    }
                 }
-
             }
             imageMatrix = photoMatrix
         }
@@ -140,6 +143,7 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
     }
 
     // onTouch
+    @CallSuper
     override fun onTouch(view: View?, event: MotionEvent): Boolean {
         if (drawable == null || config.dragMode == DragMode.Disabled) return true
         when (event.action) {
@@ -173,7 +177,7 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
                 changeWithoutRotate {
                     val currentScale = matrixValues.getScale(photoMatrix)
                     when {
-                        currentScale > maxScale ->
+                        currentScale > config.maxScale ->
                             photoMatrix.apply {
                                 setScale(dragInfo.lastScale, dragInfo.lastScale)
                                 postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
@@ -204,37 +208,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
     // private method
     private fun needApplyLastResult() =
             !triRecord.isEmpty() && !standardRectF.isEmpty
-
-    private fun calculateStandardScale() =
-            when {
-                !dragInfo.isEmpty() && dragInfo.hasRotated() ->
-                    when {
-                        drawableHF < standardRectF.width()
-                                && drawableWF > standardRectF.height() ->
-                            standardRectF.width() / drawableHF
-                        drawableHF > standardRectF.width()
-                                && drawableWF < standardRectF.height() ->
-                            standardRectF.height() / drawableWF
-                        (drawableHF > standardRectF.width() && drawableWF > standardRectF.height()) ||
-                                (drawableHF < standardRectF.width() && drawableWF < standardRectF.height()) ->
-                            Math.max(standardRectF.width() / drawableHF,
-                                    standardRectF.height() / drawableWF)
-                        else -> 1f
-                    }
-                else -> when {
-                    drawableWF < standardRectF.width()
-                            && drawableHF > standardRectF.height() ->
-                        standardRectF.width() / drawableWF
-                    drawableWF > standardRectF.width()
-                            && drawableHF < standardRectF.height() ->
-                        standardRectF.height() / drawableHF
-                    (drawableWF > standardRectF.width() && drawableHF > standardRectF.height()) ||
-                            (drawableWF < standardRectF.width() && drawableHF < standardRectF.height()) ->
-                        Math.max(standardRectF.width() / drawableWF,
-                                standardRectF.height() / drawableHF)
-                    else -> 1f
-                }
-            }
 
     private fun changeWithoutRotate(f: () -> Unit) {
         photoMatrix.postRotate(360f - dragInfo.lastAngle, centerPointF.x, centerPointF.y)
@@ -286,36 +259,6 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         photoMatrix.postTranslate(dx2, dy2)
     }
 
-    private fun rotateAnim(startDragInfo: DragInfo, endDragInfo: DragInfo) {
-        val animator = ValueAnimator()
-        animator.duration = config.animDuration
-        animator.setObjectValues(DragInfo())
-        animator.interpolator = LinearInterpolator()
-        animator.setEvaluator { fraction, _, _ ->
-            val scale = endDragInfo.lastScale * fraction + (1 - fraction) * startDragInfo.lastScale
-            val transX = endDragInfo.lastTransX * fraction + (1 - fraction) * startDragInfo.lastTransX
-            val transY = endDragInfo.lastTransY * fraction + (1 - fraction) * startDragInfo.lastTransY
-            val angle = when {
-                endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == -270f ->
-                    -360f * fraction + (1 - fraction) * startDragInfo.lastAngle
-                endDragInfo.lastAngle == 0f && startDragInfo.lastAngle == 270f ->
-                    360f * fraction + (1 - fraction) * startDragInfo.lastAngle
-                else -> endDragInfo.lastAngle * fraction + (1 - fraction) * startDragInfo.lastAngle
-            }
-            DragInfo(transX, transY, scale, angle)
-        }
-        animator.addUpdateListener {
-            val updateDragInfo = it.animatedValue as DragInfo
-            photoMatrix.apply {
-                setScale(updateDragInfo.lastScale, updateDragInfo.lastScale)
-                postTranslate(updateDragInfo.lastTransX, updateDragInfo.lastTransY)
-                postRotate(updateDragInfo.lastAngle, centerPointF.x, centerPointF.y)
-            }
-            imageMatrix = photoMatrix
-        }
-        animator.start()
-    }
-
     // protect method
     protected fun setCenter(x: Float = -1f,
                             y: Float = -1f) =
@@ -362,49 +305,123 @@ abstract class DragView(context: Context, attributeSet: AttributeSet?) : AppComp
         }
     }
 
+    protected fun getLengthInfoByChange(oldDragInfo: DragInfo, oldRectF: RectF, changeRectF: RectF): LengthInfo {
+        val oldLengthInfo = getLengthInfo(oldDragInfo)
+        val dLeft = changeRectF.left - oldRectF.left
+        val dRight = changeRectF.right - oldRectF.right
+        val dTop = changeRectF.top - oldRectF.top
+        val dBottom = changeRectF.bottom - oldRectF.bottom
+        return when (oldDragInfo.lastAngle) {
+            180f, -180f -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.width() - dRight) / changeRectF.width()
+                val newRight = (oldLengthInfo.right * oldRectF.width() + dLeft) / changeRectF.width()
+                val newTop = (oldLengthInfo.top * oldRectF.height() - dBottom) / changeRectF.height()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.height() + dTop) / changeRectF.height()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+            90f, -270f -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.height() + dTop) / changeRectF.height()
+                val newRight = (oldLengthInfo.right * oldRectF.height() - dBottom) / changeRectF.height()
+                val newTop = (oldLengthInfo.top * oldRectF.width() - dRight) / changeRectF.width()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.width() + dLeft) / changeRectF.width()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+            270f, -90f -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.height() - dBottom) / changeRectF.height()
+                val newRight = (oldLengthInfo.right * oldRectF.height() + dTop) / changeRectF.height()
+                val newTop = (oldLengthInfo.top * oldRectF.width() + dLeft) / changeRectF.width()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.width() - dRight) / changeRectF.width()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+            else -> {
+                val newLeft = (oldLengthInfo.left * oldRectF.width() + dLeft) / changeRectF.width()
+                val newRight = (oldLengthInfo.right * oldRectF.width() - dRight) / changeRectF.width()
+                val newTop = (oldLengthInfo.top * oldRectF.height() + dTop) / changeRectF.height()
+                val newBottom = (oldLengthInfo.bottom * oldRectF.height() - dBottom) / changeRectF.height()
+                LengthInfo(newLeft, newTop, newRight, newBottom)
+            }
+        }.apply {
+            if (top < 0f)
+                top = 0f
+            if (left < 0f)
+                left = 0f
+            if (right < 0f)
+                right = 0f
+            if (bottom < 0f)
+                bottom = 0f
+        }
+
+    }
+
     protected fun transformLengthInfo(lengthInfo: LengthInfo, angle: Float): DragInfo {
         val sLeft = standardRectF.left
         val sTop = standardRectF.top
         val sWidth = standardRectF.width()
         val sHeight = standardRectF.height()
         return when (angle % 180 == 0f) {
-            true ->
+            true -> {
+                val lastScale = ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF
                 DragInfo(sLeft - lengthInfo.left * sWidth,
                         sTop - lengthInfo.top * sHeight,
-                        ((lengthInfo.left + lengthInfo.right) * sWidth + sWidth) / drawableWF,
+                        when (lastScale > config.maxScale) {
+                            true -> config.maxScale
+                            false -> lastScale
+                        },
                         angle)
-            false ->
+            }
+            false -> {
+                val lastScale = ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF
                 DragInfo((widthF - sHeight) / 2 - lengthInfo.left * sHeight,
                         (heightF - sWidth) / 2 - lengthInfo.top * sWidth,
-                        ((lengthInfo.left + lengthInfo.right) * sHeight + sHeight) / drawableWF,
+                        when (lastScale > config.maxScale) {
+                            true -> config.maxScale
+                            false -> lastScale
+                        },
                         angle)
-        }
-    }
-
-    protected fun onDragViewRotated() {
-        // save old dragInfo
-        val oldDragInfo = DragInfo(dragInfo)
-
-        dragInfo.set(transformLengthInfo(triRecord.lengthInfo, triRecord.angle))
-        standardScale = calculateStandardScale()
-        if (config.showAnim) {
-            rotateAnim(oldDragInfo, dragInfo)
-        } else {
-            photoMatrix.apply {
-                setScale(dragInfo.lastScale, dragInfo.lastScale)
-                postTranslate(dragInfo.lastTransX, dragInfo.lastTransY)
-                postRotate(dragInfo.lastAngle, centerPointF.x, centerPointF.y)
             }
-            imageMatrix = photoMatrix
         }
     }
+
+    protected fun calculateStandardScale() =
+            when {
+                !dragInfo.isEmpty() && dragInfo.hasRotated() ->
+                    when {
+                        drawableHF < standardRectF.width()
+                                && drawableWF > standardRectF.height() ->
+                            standardRectF.width() / drawableHF
+                        drawableHF > standardRectF.width()
+                                && drawableWF < standardRectF.height() ->
+                            standardRectF.height() / drawableWF
+                        (drawableHF > standardRectF.width() && drawableWF > standardRectF.height()) ||
+                                (drawableHF < standardRectF.width() && drawableWF < standardRectF.height()) ->
+                            Math.max(standardRectF.width() / drawableHF,
+                                    standardRectF.height() / drawableWF)
+                        else -> 1f
+                    }
+                else -> when {
+                    drawableWF < standardRectF.width()
+                            && drawableHF > standardRectF.height() ->
+                        standardRectF.width() / drawableWF
+                    drawableWF > standardRectF.width()
+                            && drawableHF < standardRectF.height() ->
+                        standardRectF.height() / drawableHF
+                    (drawableWF > standardRectF.width() && drawableHF > standardRectF.height()) ||
+                            (drawableWF < standardRectF.width() && drawableHF < standardRectF.height()) ->
+                        Math.max(standardRectF.width() / drawableWF,
+                                standardRectF.height() / drawableHF)
+                    else -> 1f
+                }
+            }
+
 
     // override method
+    @CallSuper
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         viewTreeObserver.addOnGlobalLayoutListener(this)
     }
 
+    @CallSuper
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         viewTreeObserver.removeOnGlobalLayoutListener(this)

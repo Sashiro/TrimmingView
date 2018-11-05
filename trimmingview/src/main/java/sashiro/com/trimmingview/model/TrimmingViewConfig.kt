@@ -14,7 +14,9 @@ class TrimmingViewConfig private constructor(
         var showAnim: Boolean,
         var animDuration: Long,
         var dragMode: DragMode,
-        var maxScaleAs: Int
+        var maxScale: Float,
+        var canTrimFrameDrag: Boolean,
+        var trimFrameAnimDuration: Long
 ) {
     fun set(src: TrimmingViewConfig) {
         this.borderColor = src.borderColor
@@ -26,7 +28,9 @@ class TrimmingViewConfig private constructor(
         this.showAnim = src.showAnim
         this.animDuration = src.animDuration
         this.dragMode = src.dragMode
-        this.maxScaleAs = src.maxScaleAs
+        this.maxScale = src.maxScale
+        this.canTrimFrameDrag = src.canTrimFrameDrag
+        this.trimFrameAnimDuration = src.trimFrameAnimDuration
     }
 
 
@@ -40,7 +44,9 @@ class TrimmingViewConfig private constructor(
         private var showAnim: Boolean
         private var animDuration: Long
         private var dragMode: DragMode
-        private var maxScaleAs: Int
+        private var maxScale: Float
+        private var canTrimFrameDrag: Boolean
+        private var trimFrameAnimDuration: Long
 
         init {
             borderColor = context.getCompColor(R.color.black)
@@ -52,7 +58,9 @@ class TrimmingViewConfig private constructor(
             showAnim = false
             animDuration = DEFAULT_ANIM_DURATION
             dragMode = DragMode.Default
-            maxScaleAs = DEFAULT_MAX_SCALE_AS
+            maxScale = DEFAULT_MAX_SCALE
+            canTrimFrameDrag = false
+            trimFrameAnimDuration = DEFAULT_FRAME_ANIM_DURATION
         }
 
         fun setBorderColor(borderColor: Int): Builder {
@@ -100,8 +108,18 @@ class TrimmingViewConfig private constructor(
             return this
         }
 
-        fun maxScaleAs(maxScaleAs: Int): Builder {
-            this.maxScaleAs = maxScaleAs
+        fun maxScale(maxScale: Float): Builder {
+            this.maxScale = maxScale
+            return this
+        }
+
+        fun canTrimFrameDrag(canTrimFrameDrag: Boolean): Builder {
+            this.canTrimFrameDrag = canTrimFrameDrag
+            return this
+        }
+
+        fun setTrimFrameAnimDuration(trimFrameAnimDuration: Long): Builder {
+            this.trimFrameAnimDuration = trimFrameAnimDuration
             return this
         }
 
@@ -115,13 +133,16 @@ class TrimmingViewConfig private constructor(
                         showAnim,
                         animDuration,
                         dragMode,
-                        maxScaleAs)
+                        maxScale,
+                        canTrimFrameDrag,
+                        trimFrameAnimDuration)
 
     }
 
     companion object {
-        const val DEFAULT_MAX_SCALE_AS = 4
+        const val DEFAULT_MAX_SCALE = 5f
         const val DEFAULT_ANIM_DURATION = 250L
+        const val DEFAULT_FRAME_ANIM_DURATION = 150L
     }
 
 }

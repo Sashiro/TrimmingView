@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <declare-styleable name="TrimmingView">
+    <declare-styleable name="RectFView">
         <attr name="trimBorderColor" format="color"/>
         <attr name="trimBgColor" format="color"/>
         <attr name="trimBorderWidth" format="dimension"/>
         <attr name="showTrimBg" format="boolean"/>
         <attr name="minPadding" format="dimension"/>
         <attr name="ratio" format="float"/>
+        <attr name="canTrimFrameDrag" format="boolean"/>
         <attr name="dragMode" format="enum">
             <enum name="defaultMode" value="0"/>
             <enum name="overDrag" value="1"/>
